@@ -11,7 +11,7 @@ def test_criar_usuario():
     response = client.post(
         "/usuarios/",
         json={
-            "nome": "marcel",
+            "nome": "marceloss",
             "senha": "12345678"
         }
     )
@@ -20,7 +20,7 @@ def test_criar_usuario():
 
     data = response.json()
 
-    assert data["nome"] == "marcel"
+    assert data["nome"] == "marceloss"
     assert data["cargo"] == "funcionario"
 
     assert "senha" not in data

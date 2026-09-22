@@ -1,5 +1,6 @@
 from app.database.base import Base
 from app.models.user_model import Usuario
+from app.models.product_model import Produto
 from app.database.connection import engine
 
 from alembic import context
