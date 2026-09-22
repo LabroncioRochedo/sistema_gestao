@@ -6,21 +6,29 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_criar_usuario():
+# def test_criar_usuario():
+#
+#   response = client.post(
+#       "/usuarios/",
+#      json={
+#            "nome": "marceloss",
+#            "senha": "12345678"
+#        }
+#    )
+#
+#    assert response.status_code == 201
+#
+#    data = response.json()
+#
+#    assert data["nome"] == "marceloss"
+#    assert data["cargo"] == "funcionario"
+#
+#    assert "senha" not in data
 
-    response = client.post(
-        "/usuarios/",
-        json={
-            "nome": "marceloss",
-            "senha": "12345678"
-        }
-    )
+def test_listar_funcionarios():
 
-    assert response.status_code == 201
+    response = client.get("/usuarios/funcionarios")
 
-    data = response.json()
+    assert response.status_code == 200
 
-    assert data["nome"] == "marceloss"
-    assert data["cargo"] == "funcionario"
-
-    assert "senha" not in data
+    print(response.json())

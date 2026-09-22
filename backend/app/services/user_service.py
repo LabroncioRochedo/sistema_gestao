@@ -31,3 +31,6 @@ def create_user(
         db,
         usuario
     )
+
+def get_funcionarios( db: Session ): 
+    return user_repository.get_by_cargo( db, "funcionario" )

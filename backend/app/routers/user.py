@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
 from app.schemas.user_schema import UsuarioCreate
-from app.services.user_service import create_user
+from app.services.user_service import create_user,get_funcionarios
 
 
 router = APIRouter(
@@ -39,3 +39,8 @@ def create_usuario(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(error)
         )
+
+@router.get("/funcionarios") 
+def listar_funcionarios( db: Session = Depends(get_db) ): 
+    usuarios = get_funcionarios(db) 
+    return [ { "id": usuario.id, "nome": usuario.nome, "cargo": usuario.cargo } for usuario in usuarios ]

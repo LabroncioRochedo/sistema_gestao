@@ -26,3 +26,15 @@ def create(
     db.refresh(usuario)
 
     return usuario
+
+def get_by_cargo(
+    db: Session,
+    cargo: str
+) -> list[Usuario]:
+
+    statement = select(Usuario).where(
+        Usuario.cargo == cargo
+    )
+
+    return db.scalars(statement).all()
+
