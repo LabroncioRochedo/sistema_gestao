@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.schemas.product_schema import ProdutoCreate
 from app.services.product_service import create_product
+from app.models.user_model import Usuario
+from app.dependencies.auth import require_admin
 
 
 router = APIRouter(
@@ -18,7 +20,8 @@ router = APIRouter(
 )
 def create_produto(
     data: ProdutoCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
 ):
 
     produto = create_product(

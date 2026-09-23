@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.schemas.user_schema import UsuarioCreate
 from app.services.user_service import create_user,get_funcionarios
+from app.models.user_model import Usuario
+from app.dependencies.auth import require_admin
 
 
 router = APIRouter(
@@ -18,7 +20,8 @@ router = APIRouter(
 )
 def create_usuario(
     data: UsuarioCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
 ):
     try:
 
@@ -41,6 +44,6 @@ def create_usuario(
         )
 
 @router.get("/funcionarios") 
-def listar_funcionarios( db: Session = Depends(get_db) ): 
+def listar_funcionarios( db: Session = Depends(get_db), usuario_atual: Usuario = Depends(require_admin) ): 
     usuarios = get_funcionarios(db) 
     return [ { "id": usuario.id, "nome": usuario.nome, "cargo": usuario.cargo } for usuario in usuarios ]
