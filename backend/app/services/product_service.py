@@ -1,9 +1,13 @@
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.product_model import Produto
 from app.repositories import product_repository
 from app.schemas.product_schema import ProdutoCreate
-
+from app.services.storage_service import (
+    delete_image,
+    save_product_image,
+)
 
 def create_product(
     db: Session,
@@ -21,3 +25,31 @@ def create_product(
         db,
         produto
     )
+
+async def update_product_image(
+    db: Session,
+    produto: Produto,
+    imagem: UploadFile
+) -> Produto:
+
+    old_image_key = produto.imagem_key
+
+    new_image_key = await save_product_image(
+        imagem
+    )
+
+    try:
+        produto = product_repository.update_image_key(
+            db,
+            produto,
+            new_image_key
+        )
+
+    except Exception:
+        delete_image(new_image_key)
+        raise
+
+    if old_image_key:
+        delete_image(old_image_key)
+
+    return produto

@@ -31,3 +31,6 @@ Thumbs.db
 .flutter-plugins-dependencies/
 .pub-cache/
 build/
+
+# Arquivos enviados pelos usuários
+storage/

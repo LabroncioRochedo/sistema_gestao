@@ -33,3 +33,8 @@ class Produto(Base):
         Date,
         nullable=True
     )
+
+    imagem_key: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )

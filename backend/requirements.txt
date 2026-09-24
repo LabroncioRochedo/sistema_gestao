@@ -28,6 +28,7 @@ Pygments==2.21.0
 PyJWT==2.14.0
 pytest==9.1.1
 python-dotenv==1.2.3
+python-multipart==0.0.32
 SQLAlchemy==2.0.54
 starlette==1.6.0
 truststore==0.10.4
