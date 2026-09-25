@@ -49,3 +49,10 @@ def get_by_cargo(
 
     return db.scalars(statement).all()
 
+def delete(
+    db: Session,
+    usuario: Usuario
+) -> None:
+
+    db.delete(usuario)
+    db.commit()

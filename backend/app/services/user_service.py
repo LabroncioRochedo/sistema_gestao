@@ -34,3 +34,21 @@ def create_user(
 
 def get_funcionarios( db: Session ): 
     return user_repository.get_by_cargo( db, "funcionario" )
+
+def delete_user(
+    db: Session,
+    usuario_id: int
+) -> None:
+
+    usuario = user_repository.get_by_id(
+        db,
+        usuario_id
+    )
+
+    if not usuario:
+        raise ValueError("Usuário não encontrado")
+
+    user_repository.delete(
+        db,
+        usuario
+    )
