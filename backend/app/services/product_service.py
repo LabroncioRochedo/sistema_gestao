@@ -53,3 +53,24 @@ async def update_product_image(
         delete_image(old_image_key)
 
     return produto
+
+def get_all_products(db: Session) -> list[Produto]:
+    return product_repository.get_all(db)
+
+def delete_product(
+    db: Session,
+    produto_id: int
+) -> None:
+
+    produto = product_repository.get_by_id(
+        db,
+        produto_id
+    )
+
+    if not produto:
+        raise ValueError("Produto não encontrado")
+
+    product_repository.delete(
+        db,
+        produto
+    )

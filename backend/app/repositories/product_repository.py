@@ -40,3 +40,16 @@ def create(
     db.refresh(produto)
 
     return produto
+
+def get_all(db: Session) -> list[Produto]:
+    statement = select(Produto)
+
+    return db.scalars(statement).all()
+
+def delete(
+    db: Session,
+    produto: Produto
+) -> None:
+
+    db.delete(produto)
+    db.commit()

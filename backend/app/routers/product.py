@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
 from app.schemas.product_schema import ProdutoCreate
-from app.services.product_service import create_product
+from app.services.product_service import create_product, delete_product, get_all_products
 from app.models.user_model import Usuario
-from app.dependencies.auth import require_admin
+from app.dependencies.auth import require_admin,get_current_user
 from app.repositories import product_repository
 from app.services.product_service import update_product_image
 
@@ -100,7 +100,8 @@ IMAGE_MEDIA_TYPES = {
 @router.get("/{produto_id}/imagem")
 def get_produto_imagem(
     produto_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user)
 ):
     produto = product_repository.get_by_id(
         db,
@@ -151,3 +152,40 @@ def get_produto_imagem(
         path=file_path,
         media_type=media_type
     )
+
+@router.get("")
+def listar_produtos(
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user)
+):
+    produtos = get_all_products(db)
+
+    return [
+        {
+            "id": produto.id,
+            "nome": produto.nome,
+            "preco": produto.preco,
+            "quantidade": produto.quantidade,
+            "data_de_validade": produto.data_de_validade
+        }
+        for produto in produtos
+    ]
+
+@router.delete("/{produto_id}")
+def excluir_produto(
+    produto_id: int,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
+):
+    try:
+        delete_product(db, produto_id)
+
+        return {
+            "message": "Produto excluído com sucesso"
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=404,
+            detail=str(error)
+        )

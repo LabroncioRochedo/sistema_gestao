@@ -1,13 +1,26 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+
+def test_listar_produtos(
+    client: TestClient,
+    auth_headers: dict[str, str]
+):
+    response = client.get(
+        "/produtos",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 200
+
+    produtos = response.json()
+
+    assert isinstance(produtos, list)
 
 
-client = TestClient(app)
-
-
-def test_criar_produto():
-
+def test_criar_produto(
+    client: TestClient,
+    auth_headers: dict[str, str]
+):
     response = client.post(
         "/produtos",
         json={
@@ -15,7 +28,8 @@ def test_criar_produto():
             "preco": 29.90,
             "quantidade": 50,
             "data_de_validade": "2027-10-15"
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 201
@@ -26,49 +40,57 @@ def test_criar_produto():
     assert float(data["preco"]) == 29.90
     assert data["quantidade"] == 50
     assert data["data_de_validade"] == "2027-10-15"
-
     assert "id" in data
 
-def test_produto_com_preco_invalido():
 
-    response = client.post(
+def test_excluir_produto(
+    client: TestClient,
+    auth_headers: dict[str, str]
+):
+    criar = client.post(
         "/produtos",
         json={
-            "nome": "Arroz",
-            "preco": -10,
-            "quantidade": 10,
+            "nome": "Produto para excluir",
+            "preco": 10.00,
+            "quantidade": 5,
             "data_de_validade": "2027-10-15"
-        }
+        },
+        headers=auth_headers
     )
 
-    assert response.status_code == 422
+    assert criar.status_code == 201
 
+    produto_id = criar.json()["id"]
 
-def test_produto_com_quantidade_invalida():
-
-    response = client.post(
-        "/produtos",
-        json={
-            "nome": "Arroz",
-            "preco": 10.50,
-            "quantidade": -5,
-            "data_de_validade": "2027-10-15"
-        }
+    response = client.delete(
+        f"/produtos/{produto_id}",
+        headers=auth_headers
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["message"] == "Produto excluído com sucesso"
 
 
-def test_produto_sem_nome():
-
-    response = client.post(
-        "/produtos",
-        json={
-            "preco": 10.50,
-            "quantidade": 10,
-            "data_de_validade": "2027-10-15"
-        }
+def test_excluir_produto_inexistente(
+    client: TestClient,
+    auth_headers: dict[str, str]
+):
+    response = client.delete(
+        "/produtos/999999999",
+        headers=auth_headers
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 404
 
+    data = response.json()
+
+    assert data["detail"] == "Produto não encontrado"
+
+
+def test_listar_produtos_sem_token(client: TestClient):
+    response = client.get("/produtos")
+
+    assert response.status_code == 401

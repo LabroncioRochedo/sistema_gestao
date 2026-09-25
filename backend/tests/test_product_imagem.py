@@ -1,12 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
-
-
-client = TestClient(app)
-
-
-def test_upload_imagem_produto():
+def test_upload_imagem_produto(client: TestClient,auth_headers: dict[str, str]):
 
     response = client.post(
         "/produtos",
@@ -15,7 +9,8 @@ def test_upload_imagem_produto():
             "preco": 10.50,
             "quantidade": 10,
             "data_de_validade": "2027-10-15"
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 201
@@ -46,7 +41,8 @@ def test_upload_imagem_produto():
                 imagem,
                 "image/png"
             )
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 200

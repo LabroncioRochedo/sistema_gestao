@@ -15,6 +15,17 @@ def get_by_name(
 
     return db.scalar(statement)
 
+def get_by_id(
+    db: Session,
+    id: int
+) -> Usuario | None:
+
+    statement = select(Usuario).where(
+        Usuario.id == id
+    )
+
+    return db.scalar(statement)
+
 
 def create(
     db: Session,
