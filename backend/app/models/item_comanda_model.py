@@ -1,10 +1,15 @@
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
+if TYPE_CHECKING:
+    from app.models.comanda_model import Comanda
+    from app.models.user_model import Usuario
+    from app.models.venda_model import Venda
 
 class ItemComanda(Base):
     __tablename__ = "itens_comanda"
@@ -29,7 +34,7 @@ class ItemComanda(Base):
         nullable=False
     )
 
-    comentario: Mapped[str] = mapped_column(
+    comentario: Mapped[str | None] = mapped_column(
         String(250),
         nullable=True
     )
