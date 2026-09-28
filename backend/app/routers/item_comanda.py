@@ -6,7 +6,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user_model import Usuario
 from app.schemas.item_comanda_schema import (
     ItemComandaCreate,
-    ItemComandaResponse
+    ItemComandaResponse_criar
 )
 from app.services import item_comanda_service
 
@@ -19,7 +19,7 @@ router = APIRouter(
 
 @router.post(
     "/{comanda_id}/itens",
-    response_model=ItemComandaResponse,
+    response_model=ItemComandaResponse_criar,
     status_code=201
 )
 def adicionar_item(

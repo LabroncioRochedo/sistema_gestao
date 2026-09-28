@@ -13,3 +13,6 @@ def create_comanda(db: Session,data: ComandaCreate, usuario_id: int) -> Comanda:
     )
 
     return comanda_repository.create(db, comanda)
+
+def get_all_comandas(db: Session) -> list[Comanda]:
+    return comanda_repository.get_all(db)

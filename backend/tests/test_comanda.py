@@ -24,3 +24,15 @@ def test_abrir_comanda_sem_token(client):
     )
 
     assert response.status_code == 401
+
+def test_listar_comandas(client,auth_headers):
+    response = client.get(
+        "/comandas",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data[0]["usuario_nome"] == "labroncio"

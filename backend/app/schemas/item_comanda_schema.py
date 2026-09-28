@@ -10,7 +10,7 @@ class ItemComandaCreate(BaseModel):
         max_length=250
     )
 
-class ItemComandaResponse(BaseModel):
+class ItemComandaResponse_criar(BaseModel):
     id: int
     comanda_id: int
     produto_id: int

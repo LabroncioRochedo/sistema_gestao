@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,selectinload
+from sqlalchemy import select
 
 from app.models.comanda_model import Comanda
 
@@ -13,3 +14,11 @@ def create(db: Session, comanda: Comanda) -> Comanda:
 
 def get_by_id(db: Session, comanda_id: int) -> Comanda | None:
     return db.get(Comanda, comanda_id)
+
+def get_all(db: Session):
+    comando = (
+        select(Comanda)
+        .options(selectinload(Comanda.usuario))
+    )
+
+    return db.scalars(comando).all()
