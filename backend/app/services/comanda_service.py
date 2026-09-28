@@ -16,3 +16,9 @@ def create_comanda(db: Session,data: ComandaCreate, usuario_id: int) -> Comanda:
 
 def get_all_comandas(db: Session) -> list[Comanda]:
     return comanda_repository.get_all(db)
+
+def deletar_comanda(db, comanda_id: int):
+    return comanda_repository.deletar_comanda(
+        db=db,
+        comanda_id=comanda_id
+    )

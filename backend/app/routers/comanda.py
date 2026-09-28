@@ -9,7 +9,7 @@ from app.schemas.comanda_schema import (
     ComandaResponse_criar,
     ComandaResponse_listar
 )
-from app.services.comanda_service import create_comanda, get_all_comandas
+from app.services import comanda_service
 
 
 router = APIRouter(
@@ -28,7 +28,7 @@ def abrir_comanda(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_current_user)
 ):
-    return create_comanda(
+    return comanda_service.create_comanda(
         db=db,
         data=data,
         usuario_id=usuario_atual.id
@@ -42,4 +42,34 @@ def listar_comandas(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user)
 ):
-    return get_all_comandas(db)
+    return comanda_service.get_all_comandas(db)
+
+@router.delete("/{comanda_id}")
+def deletar_comanda(
+    comanda_id: int,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user)
+):
+    try:
+        comanda_service.deletar_comanda(
+            db=db,
+            comanda_id=comanda_id
+        )
+
+        return {
+            "mensagem": "Comanda e itens excluídos. Estoque restaurado."
+        }
+
+    except ValueError as erro:
+        mensagem = str(erro)
+
+        if mensagem == "Comanda não encontrada":
+            raise HTTPException(
+                status_code=404,
+                detail=mensagem
+            )
+
+        raise HTTPException(
+            status_code=400,
+            detail=mensagem
+        )

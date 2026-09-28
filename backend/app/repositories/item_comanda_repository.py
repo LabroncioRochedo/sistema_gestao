@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.comanda_model import Comanda
 from app.models.product_model import Produto
@@ -60,6 +60,77 @@ def adicionar_item(
         db.refresh(item)
 
         return item
+
+    except Exception:
+        db.rollback()
+        raise
+
+def listar_itens(
+    db: Session,
+    comanda_id: int
+) -> list[ItemComanda]:
+
+    comando = (
+        select(ItemComanda)
+        .where(ItemComanda.comanda_id == comanda_id)
+        .options(
+            selectinload(ItemComanda.produto),
+            selectinload(ItemComanda.usuario)
+        )
+        .order_by(ItemComanda.id)
+    )
+
+    return db.scalars(comando).all()
+
+def deletar_item(
+    db: Session,
+    comanda_id: int,
+    item_id: int
+) -> None:
+
+    try:
+        comanda = db.scalar(
+            select(Comanda)
+            .where(Comanda.id == comanda_id)
+            .with_for_update()
+        )
+
+        if comanda is None:
+            raise ValueError("Comanda não encontrada")
+
+        if comanda.status != "aberta":
+            raise ValueError(
+                "Não é possível alterar uma comanda fechada"
+            )
+
+        item = db.scalar(
+            select(ItemComanda)
+            .where(
+                ItemComanda.id == item_id,
+                ItemComanda.comanda_id == comanda_id
+            )
+            .with_for_update()
+        )
+
+        if item is None:
+            raise ValueError("Item não encontrado nesta comanda")
+
+        produto = db.scalar(
+            select(Produto)
+            .where(Produto.id == item.produto_id)
+            .with_for_update()
+        )
+
+        if produto is None:
+            raise ValueError("Produto associado não encontrado")
+
+        # Devolve ao estoque a quantidade lançada
+        produto.quantidade += item.quantidade
+
+        # Remove o item da comanda
+        db.delete(item)
+
+        db.commit()
 
     except Exception:
         db.rollback()
