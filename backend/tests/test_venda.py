@@ -99,3 +99,28 @@ def test_venda_direta(client, auth_headers):
     )
 
     assert response.status_code == 201
+
+    response = client.get(
+        "/vendas",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+    venda_id = response.json()[0]["id"]
+
+    response = client.get(
+        f"/vendas/{venda_id}/itens",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+    response = client.get(
+        "/vendas/999999/itens",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 404

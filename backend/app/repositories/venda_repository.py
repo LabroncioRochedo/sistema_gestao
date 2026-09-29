@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
@@ -142,3 +142,36 @@ def vender_produto_direto(
     except Exception:
         db.rollback()
         raise
+
+def listar_vendas(db):
+    stmt = (
+        select(Venda)
+        .options(
+            selectinload(Venda.usuario)
+        )
+        .order_by(Venda.data_venda.desc())
+    )
+
+    return db.scalars(stmt).all()
+
+
+def buscar_venda_por_id(db, venda_id: int):
+    stmt = select(Venda).where(
+        Venda.id == venda_id
+    )
+
+    return db.scalar(stmt)
+
+
+def listar_itens_venda(db, venda_id: int):
+    stmt = (
+        select(ItemVenda)
+        .where(ItemVenda.venda_id == venda_id)
+        .options(
+            selectinload(ItemVenda.produto),
+            selectinload(ItemVenda.usuario)
+        )
+        .order_by(ItemVenda.id)
+    )
+
+    return db.scalars(stmt).all()

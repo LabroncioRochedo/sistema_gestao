@@ -28,3 +28,19 @@ def vender_produto_direto(
         usuario_id=usuario_id,
         forma_pagamento=forma_pagamento,
     )
+
+def listar_vendas(db):
+    return venda_repository.listar_vendas(db)
+
+
+def listar_itens_venda(db, venda_id: int):
+    venda = venda_repository.buscar_venda_por_id(
+        db, venda_id
+    )
+
+    if venda is None:
+        raise ValueError("Venda não encontrada")
+
+    return venda_repository.listar_itens_venda(
+        db, venda_id
+    )

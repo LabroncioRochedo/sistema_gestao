@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user_model import Usuario
-from app.schemas.venda_schema import VendaCreate, VendaResponse, VendaDiretaCreate
+from app.schemas.venda_schema import VendaCreate, VendaResponse_vender, VendaDiretaCreate, ItemVendaResponse_listar, VendaResponse_listar
 from app.services import venda_service
 
 router = APIRouter(
@@ -14,7 +14,7 @@ router = APIRouter(
 
 @router.post(
     "/comandas/{comanda_id}/vender",
-    response_model=VendaResponse,
+    response_model=VendaResponse_vender,
     status_code=201
 )
 def vender_comanda(
@@ -66,4 +66,34 @@ def vender_produto_direto(
         raise HTTPException(
             status_code=codigo,
             detail=mensagem,
+        )
+
+@router.get(
+    "/vendas",
+    response_model=list[VendaResponse_listar]
+)
+def listar_vendas(
+    db: Session = Depends(get_db),
+    usuario=Depends(get_current_user)
+):
+    return venda_service.listar_vendas(db)
+
+
+@router.get(
+    "/vendas/{venda_id}/itens",
+    response_model=list[ItemVendaResponse_listar]
+)
+def listar_itens_venda(
+    venda_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(get_current_user)
+):
+    try:
+        return venda_service.listar_itens_venda(
+            db, venda_id
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=404,
+            detail=str(erro)
         )
