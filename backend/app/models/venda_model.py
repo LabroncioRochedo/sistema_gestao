@@ -15,12 +15,6 @@ class Venda(Base):
         autoincrement=True
     )
 
-    comanda_id: Mapped[int] = mapped_column(
-        ForeignKey("comandas.id"),
-        nullable=False,
-        unique=True
-    )
-
     usuario_id: Mapped[int] = mapped_column(
         ForeignKey("usuarios.id"),
         nullable=False
@@ -40,10 +34,6 @@ class Venda(Base):
         DateTime,
         nullable=False,
         default=datetime.utcnow
-    )
-
-    comanda: Mapped["Comanda"] = relationship(
-        back_populates="venda"
     )
 
     usuario: Mapped["Usuario"] = relationship()

@@ -6,6 +6,7 @@ from app.routers.user import router as user_router
 from app.routers.product import router as product_router
 from app.routers.comanda import router as comanda_router
 from app.routers.item_comanda import router as item_comanda_router
+from app.routers.venda import router as venda_router
 
 
 app = FastAPI(
@@ -23,3 +24,4 @@ app.include_router(user_router)
 app.include_router(product_router)
 app.include_router(comanda_router)
 app.include_router(item_comanda_router)
+app.include_router(venda_router)

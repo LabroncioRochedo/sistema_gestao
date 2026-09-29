@@ -47,8 +47,3 @@ class Comanda(Base):
         back_populates="comanda",
         cascade="all, delete-orphan"
     )
-
-    venda: Mapped["Venda | None"] = relationship(
-        back_populates="comanda",
-        uselist=False
-    )
