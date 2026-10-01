@@ -44,6 +44,16 @@ def listar_comandas(
 ):
     return comanda_service.get_all_comandas(db)
 
+@router.get(
+    "/{comanda_id}"
+)
+def pegar_comanda(
+    comanda_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)
+):
+    return comanda_service.get_comanda(db=db,comanda_id=comanda_id)
+
 @router.delete("/{comanda_id}")
 def deletar_comanda(
     comanda_id: int,

@@ -25,6 +25,16 @@ def get_all(db: Session):
 
     return db.scalars(comando).all()
 
+def get_comanda(
+    db: Session,
+    comanda_id: int
+):
+    return (
+        db.query(Comanda)
+        .filter(Comanda.id == comanda_id)
+        .first()
+    )
+
 def deletar_comanda(db, comanda_id: int):
     try:
         # Bloqueia a comanda durante a operação
