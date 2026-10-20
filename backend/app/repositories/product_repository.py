@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models.product_model import Produto
@@ -90,10 +90,17 @@ def criar_lote(
     return lote
 
 
-def get_all(db: Session) -> list[Produto]:
-    statement = select(Produto)
+def get_all(db: Session):
+    statement = (
+        select(
+            Produto,
+            func.coalesce(func.sum(Lote.quantidade), 0).label("quantidade_total")
+        )
+        .outerjoin(Lote, Lote.produto_id == Produto.id)
+        .group_by(Produto.id)
+    )
 
-    return db.scalars(statement).all()
+    return db.execute(statement).all()
 
 def delete(
     db: Session,

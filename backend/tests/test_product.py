@@ -14,7 +14,7 @@ def test_listar_produtos(
 
     produtos = response.json()
 
-    assert isinstance(produtos, list)
+    assert produtos[0]["quantidade"] is not None
 
 
 def test_criar_produto_com_primeiro_lote(

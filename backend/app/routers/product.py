@@ -177,9 +177,10 @@ def listar_produtos(
         {
             "id": produto.id,
             "nome": produto.nome,
-            "preco": produto.preco
+            "preco": produto.preco,
+            "quantidade": quantidade_total
         }
-        for produto in produtos
+        for produto, quantidade_total in produtos
     ]
 
 @router.delete("/{produto_id}")
