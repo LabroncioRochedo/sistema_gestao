@@ -26,4 +26,5 @@ class Produto(Base):
     # Um produto pode ter vários lotes.
     lotes: Mapped[list["Lote"]] = relationship(
         back_populates="produto",
+        cascade="all, delete-orphan",
     )

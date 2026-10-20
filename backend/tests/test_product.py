@@ -17,30 +17,28 @@ def test_listar_produtos(
     assert isinstance(produtos, list)
 
 
-def test_criar_produto(
-    client: TestClient,
-    auth_headers: dict[str, str]
+def test_criar_produto_com_primeiro_lote(
+    client, auth_headers
 ):
     response = client.post(
         "/produtos",
         json={
             "nome": "Arroz 5kg",
-            "preco": 29.90,
+            "preco": "29.90",
             "quantidade": 50,
-            "data_de_validade": "2027-10-15"
+            "data_de_validade": "2027-10-15",
         },
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     assert response.status_code == 201
 
-    data = response.json()
+    dados = response.json()
 
-    assert data["nome"] == "Arroz 5kg"
-    assert float(data["preco"]) == 29.90
-    assert data["quantidade"] == 50
-    assert data["data_de_validade"] == "2027-10-15"
-    assert "id" in data
+    assert dados["nome"] == "Arroz 5kg"
+    assert dados["lote"]["quantidade"] == 50
+    assert dados["lote"]["data_de_validade"] == "2027-10-15"
+    assert dados["lote"]["id"] is not None
 
 
 def test_excluir_produto(

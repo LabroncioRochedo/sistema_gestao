@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
 from app.schemas.product_schema import ProdutoCreate
-from app.services.product_service import create_product, delete_product, get_all_products
+from app.services import product_service
 from app.models.user_model import Usuario
 from app.dependencies.auth import require_admin,get_current_user
 from app.repositories import product_repository
@@ -32,23 +32,20 @@ router = APIRouter(
     "",
     status_code=status.HTTP_201_CREATED
 )
-def create_produto(
-    data: ProdutoCreate,
+def criar_produto(
+    dados: ProdutoCreate,
     db: Session = Depends(get_db),
-    usuario_atual: Usuario = Depends(require_admin)
 ):
-
-    produto = create_product(
-        db,
-        data
+    produto, lote = product_service.criar_produto(
+        db=db,
+        dados=dados,
     )
 
     return {
         "id": produto.id,
         "nome": produto.nome,
         "preco": produto.preco,
-        "quantidade": produto.quantidade,
-        "data_de_validade": produto.data_de_validade
+        "lote": lote,
     }
 
 @router.post(
@@ -158,15 +155,13 @@ def listar_produtos(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_current_user)
 ):
-    produtos = get_all_products(db)
+    produtos = product_service.get_all_products(db)
 
     return [
         {
             "id": produto.id,
             "nome": produto.nome,
-            "preco": produto.preco,
-            "quantidade": produto.quantidade,
-            "data_de_validade": produto.data_de_validade
+            "preco": produto.preco
         }
         for produto in produtos
     ]
@@ -178,7 +173,7 @@ def excluir_produto(
     usuario_atual: Usuario = Depends(require_admin)
 ):
     try:
-        delete_product(db, produto_id)
+        product_service.delete_product(db, produto_id)
 
         return {
             "message": "Produto excluído com sucesso"

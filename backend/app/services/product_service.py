@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.product_model import Produto
+from app.models.lote_model import Lote
 from app.repositories import product_repository
 from app.schemas.product_schema import ProdutoCreate
 from app.services.storage_service import (
@@ -9,21 +10,13 @@ from app.services.storage_service import (
     save_product_image,
 )
 
-def create_product(
+def criar_produto(
     db: Session,
-    data: ProdutoCreate
-) -> Produto:
-
-    produto = Produto(
-        nome=data.nome,
-        preco=data.preco,
-        quantidade=data.quantidade,
-        data_de_validade=data.data_de_validade
-    )
-
-    return product_repository.create(
-        db,
-        produto
+    dados: ProdutoCreate,
+):
+    return product_repository.criar_produto_com_lote(
+        db=db,
+        dados=dados,
     )
 
 async def update_product_image(
