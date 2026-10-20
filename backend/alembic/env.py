@@ -4,7 +4,7 @@ from app.models.product_model import Produto
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
 from app.models.item_venda_model import ItemVenda
-from app.models.movimentacao_estoque_model import MovimentacaoEstoque
+from app.models.lote_model import Lote
 from app.models.venda_model import Venda
 from app.database.connection import engine
 

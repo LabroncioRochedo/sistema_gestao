@@ -1,8 +1,5 @@
-from datetime import date
-from decimal import Decimal
-
-from sqlalchemy import Date, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Numeric
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
@@ -12,29 +9,21 @@ class Produto(Base):
 
     id: Mapped[int] = mapped_column(
         primary_key=True,
-        autoincrement=True
+        index=True,
     )
 
     nome: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False
+        String(150),
+        nullable=False,
+        index=True,
     )
 
-    preco: Mapped[Decimal] = mapped_column(
+    preco: Mapped[float] = mapped_column(
         Numeric(10, 2),
-        nullable=False
+        nullable=False,
     )
 
-    quantidade: Mapped[int] = mapped_column(
-        nullable=False
-    )
-
-    data_de_validade: Mapped[date] = mapped_column(
-        Date,
-        nullable=True
-    )
-
-    imagem_key: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True
+    # Um produto pode ter vários lotes.
+    lotes: Mapped[list["Lote"]] = relationship(
+        back_populates="produto",
     )
