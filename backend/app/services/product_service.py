@@ -4,11 +4,22 @@ from sqlalchemy.orm import Session
 from app.models.product_model import Produto
 from app.models.lote_model import Lote
 from app.repositories import product_repository
-from app.schemas.product_schema import ProdutoCreate
+from app.schemas.product_schema import ProdutoCreate, LoteCreat
 from app.services.storage_service import (
     delete_image,
     save_product_image,
 )
+
+def criar_lote(
+    db: Session,
+    dados: LoteCreatCreate,
+    produto_id: int
+):
+    return product_repository.criar_lote(
+        db=db,
+        dados=dados,
+        produto_id=produto_id
+    )
 
 def criar_produto(
     db: Session,

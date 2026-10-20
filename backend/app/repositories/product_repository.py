@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.product_model import Produto
 from app.models.lote_model import Lote
-from app.schemas.product_schema import ProdutoCreate
+from app.schemas.product_schema import ProdutoCreate, LoteCreat
 
 
 def get_by_id(
@@ -70,6 +70,25 @@ def criar_produto_com_lote(
     except Exception:
         db.rollback()
         raise
+
+def criar_lote(
+    db: Session,
+    dados: LoteCreat,
+    produto_id: int
+):
+    lote = Lote(
+            produto_id=produto_id,
+            quantidade=dados.quantidade,
+            data_de_validade=dados.data_de_validade,
+        )
+
+    db.add(lote)
+
+    db.commit()
+    db.refresh(lote)
+
+    return lote
+
 
 def get_all(db: Session) -> list[Produto]:
     statement = select(Produto)

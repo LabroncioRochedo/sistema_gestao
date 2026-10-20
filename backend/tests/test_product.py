@@ -40,6 +40,19 @@ def test_criar_produto_com_primeiro_lote(
     assert dados["lote"]["data_de_validade"] == "2027-10-15"
     assert dados["lote"]["id"] is not None
 
+    produto_id = dados["id"]
+
+    response = client.post(
+        f"/produtos/{produto_id}/lote",
+        json={
+            "quantidade": 90,
+            "data_de_validade": "2027-10-15",
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+
 
 def test_excluir_produto(
     client: TestClient,

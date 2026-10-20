@@ -9,7 +9,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
-from app.schemas.product_schema import ProdutoCreate
+from app.schemas.product_schema import ProdutoCreate,LoteCreat
 from app.services import product_service
 from app.models.user_model import Usuario
 from app.dependencies.auth import require_admin,get_current_user
@@ -27,6 +27,21 @@ router = APIRouter(
     tags=["Produtos"]
 )
 
+@router.post(
+    "/{produto_id}/lote",
+    status_code=status.HTTP_201_CREATED
+)
+def criar_lote(
+    produto_id: int,
+    dados: LoteCreat,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
+):
+    lote = product_service.criar_lote(
+        db=db,
+        dados=dados,
+        produto_id=produto_id
+    )
 
 @router.post(
     "",
@@ -35,6 +50,7 @@ router = APIRouter(
 def criar_produto(
     dados: ProdutoCreate,
     db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
 ):
     produto, lote = product_service.criar_produto(
         db=db,

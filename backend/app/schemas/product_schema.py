@@ -20,3 +20,11 @@ class ProdutoCreate(BaseModel):
     )
 
     data_de_validade: date
+
+class LoteCreat(BaseModel):
+
+    quantidade: int = Field(
+        ge=0
+    )
+
+    data_de_validade: date
