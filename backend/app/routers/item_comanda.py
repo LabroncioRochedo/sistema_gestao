@@ -20,7 +20,7 @@ router = APIRouter(
 
 @router.post(
     "/{comanda_id}/itens",
-    response_model=ItemComandaResponse_criar,
+    response_model=list[ItemComandaResponse_criar],
     status_code=201
 )
 def adicionar_item(

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.comanda_model import Comanda
     from app.models.user_model import Usuario
     from app.models.venda_model import Venda
+    from app.models.lote_model import Lote
 
 class ItemComanda(Base):
     __tablename__ = "itens_comanda"
@@ -26,6 +27,11 @@ class ItemComanda(Base):
 
     produto_id: Mapped[int] = mapped_column(
         ForeignKey("produtos.id"),
+        nullable=False
+    )
+
+    lote_id: Mapped[int] = mapped_column(
+        ForeignKey("lotes.id"),
         nullable=False
     )
 
@@ -51,6 +57,8 @@ class ItemComanda(Base):
     comanda: Mapped["Comanda"] = relationship(
         back_populates="itens"
     )
+
+    lote: Mapped["Lote"] = relationship()
 
     produto: Mapped["Produto"] = relationship()
 

@@ -14,6 +14,7 @@ class ItemComandaResponse_criar(BaseModel):
     id: int
     comanda_id: int
     produto_id: int
+    lote_id: int
     usuario_id: int
     quantidade: int
     preco_unitario: Decimal
@@ -29,6 +30,7 @@ class ItemComandaResponse_listar(BaseModel):
     id: int
     comanda_id: int
     produto_id: int
+    lote_id: int
     quantidade: int
     preco_unitario: Decimal
     comentario: str | None

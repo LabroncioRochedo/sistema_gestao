@@ -35,7 +35,7 @@ def test_listar_comandas(client,auth_headers):
 
     data = response.json()
 
-    assert data[0]["usuario_nome"] == "labroncio"
+    assert data[0]["usuario_nome"] == "Marcus"
 
 def test_deletar_comanda_retorna_estoque(
     client,

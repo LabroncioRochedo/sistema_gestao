@@ -23,6 +23,11 @@ class Produto(Base):
         nullable=False,
     )
 
+    imagem_key: Mapped[str | None] = mapped_column(
+    String(255),
+    nullable=True
+    )
+
     # Um produto pode ter vários lotes.
     lotes: Mapped[list["Lote"]] = relationship(
         back_populates="produto",

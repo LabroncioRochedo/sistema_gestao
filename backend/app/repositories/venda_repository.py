@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.models.item_comanda_model import ItemComanda
 from app.models.product_model import Produto
 from app.models.venda_model import Venda
 from app.models.item_venda_model import ItemVenda
+from app.models.lote_model import Lote
 
 
 def vender_comanda(
@@ -95,24 +96,45 @@ def vender_produto_direto(
     forma_pagamento: str,
 ):
     try:
+
+        # Verifica se o produto existe
         produto = db.scalar(
             select(Produto)
             .where(Produto.id == produto_id)
-            .with_for_update()
         )
 
         if produto is None:
             raise ValueError("Produto não encontrado")
 
-        if quantidade <= 0:
-            raise ValueError("A quantidade deve ser maior que zero")
+        # Busca e bloqueia os lotes válidos,
+        # ordenados pela data de validade.
+        lotes = db.scalars(
+            select(Lote)
+            .where(
+                Lote.produto_id == produto_id,
+                Lote.quantidade > 0,
+                Lote.data_de_validade >= date.today()
+            )
+            .order_by(
+                Lote.data_de_validade.asc(),
+                Lote.id.asc()
+            )
+            .with_for_update()
+        ).all()
 
-        if produto.quantidade < quantidade:
-            raise ValueError("Estoque insuficiente")
+        estoque_disponivel = sum(
+            lote.quantidade for lote in lotes
+        )
+
+        if estoque_disponivel < quantidade:
+            raise ValueError(
+                "Estoque insuficiente nos lotes válidos"
+            )
 
         preco_unitario = Decimal(str(produto.preco))
         valor_total = preco_unitario * quantidade
 
+        # Cria a venda
         venda = Venda(
             usuario_id=usuario_id,
             valor_total=valor_total,
@@ -123,17 +145,32 @@ def vender_produto_direto(
         db.add(venda)
         db.flush()
 
-        item = ItemVenda(
-            venda_id=venda.id,
-            produto_id=produto.id,
-            usuario_id=usuario_id,
-            quantidade=quantidade,
-            preco_unitario=preco_unitario,
-        )
+        quantidade_restante = quantidade
 
-        produto.quantidade -= quantidade
+        # Desconta o estoque seguindo FEFO:
+        # primeiro o lote que vence primeiro.
+        for lote in lotes:
+            if quantidade_restante == 0:
+                break
 
-        db.add(item)
+            quantidade_utilizada = min(
+                lote.quantidade,
+                quantidade_restante
+            )
+
+            lote.quantidade -= quantidade_utilizada
+            quantidade_restante -= quantidade_utilizada
+
+            item = ItemVenda(
+                venda_id=venda.id,
+                produto_id=produto.id,
+                usuario_id=usuario_id,
+                quantidade=quantidade_utilizada,
+                preco_unitario=preco_unitario,
+            )
+
+            db.add(item)
+
         db.commit()
         db.refresh(venda)
 

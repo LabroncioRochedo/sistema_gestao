@@ -17,6 +17,18 @@ def get_by_id(
 
     return db.scalar(statement)
 
+def pegar_lotes_de_um_produto(
+    db: Session,
+    produto_id: int
+) -> list[Lote]:
+
+    statement = select(Lote).where(
+        Lote.produto_id == produto_id,
+        Lote.quantidade > 0
+    )
+
+    return db.scalars(statement).all()
+
 
 def update_image_key(
     db: Session,

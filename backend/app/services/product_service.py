@@ -61,6 +61,15 @@ async def update_product_image(
 def get_all_products(db: Session) -> list[Produto]:
     return product_repository.get_all(db)
 
+def pegar_lotes_de_um_produto(
+    db: Session,
+    produto_id: int
+):
+    return product_repository.pegar_lotes_de_um_produto(
+        db=db,
+        produto_id=produto_id
+    )
+
 def delete_product(
     db: Session,
     produto_id: int

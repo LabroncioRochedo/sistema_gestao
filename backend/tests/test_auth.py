@@ -5,7 +5,7 @@ def test_login(client: TestClient):
     response = client.post(
         "/auth/login",
         json={
-            "nome": "labroncio",
+            "nome": "Marcus",
             "senha": "12345678"
         }
         )

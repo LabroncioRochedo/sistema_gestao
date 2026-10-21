@@ -183,6 +183,27 @@ def listar_produtos(
         for produto, quantidade_total in produtos
     ]
 
+@router.get("/{produto_id}/lote")
+def pegar_lotes_de_um_produto(
+    produto_id: int,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user)
+):
+    lotes = product_service.pegar_lotes_de_um_produto(
+        db=db,
+        produto_id=produto_id
+    )
+
+    return [
+        {
+            "id": lote.id,
+            "quantidade": lote.quantidade,
+            "data_de_validade": lote.data_de_validade
+        }
+        for lote in lotes
+    ]
+
+
 @router.delete("/{produto_id}")
 def excluir_produto(
     produto_id: int,

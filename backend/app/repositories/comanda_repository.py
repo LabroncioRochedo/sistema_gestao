@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
 from app.models.product_model import Produto
+from app.models.lote_model import Lote
 
 
 def create(db: Session, comanda: Comanda) -> Comanda:
@@ -15,7 +16,7 @@ def create(db: Session, comanda: Comanda) -> Comanda:
 
 
 def get_by_id(db: Session, comanda_id: int) -> Comanda | None:
-    return db.get(Comanda, comanda_id)
+    return db.get(Comanda, comanda_id) 
 
 def get_all(db: Session):
     comando = (
@@ -64,18 +65,18 @@ def deletar_comanda(db, comanda_id: int):
         quantidades = {}
 
         for item in itens:
-            quantidades[item.produto_id] = (
-                quantidades.get(item.produto_id, 0)
+            quantidades[item.lote_id] = (
+                quantidades.get(item.lote_id, 0)
                 + item.quantidade
             )
 
         # Bloqueia os produtos em ordem consistente
         produtos = {}
 
-        for produto_id in sorted(quantidades):
+        for lote_id in sorted(quantidades):
             produto = db.execute(
-                select(Produto)
-                .where(Produto.id == produto_id)
+                select(Lote)
+                .where(Lote.id == lote_id)
                 .with_for_update()
             ).scalar_one_or_none()
 
@@ -84,11 +85,11 @@ def deletar_comanda(db, comanda_id: int):
                     f"Produto {produto_id} não encontrado"
                 )
 
-            produtos[produto_id] = produto
+            produtos[lote_id] = produto
 
         # Devolve as quantidades ao estoque
-        for produto_id, quantidade in quantidades.items():
-            produtos[produto_id].quantidade += quantidade
+        for lote_id, quantidade in quantidades.items():
+            produtos[lote_id].quantidade += quantidade
 
         # Exclui os itens e a comanda
         for item in itens:

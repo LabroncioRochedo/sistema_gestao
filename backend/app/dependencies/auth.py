@@ -52,6 +52,14 @@ def require_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário não encontrado"
         )
+    
+    cargo = payload.get("cargo")
+    
+    if cargo != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário nao tem permissao"
+        )
 
     return usuario
 
@@ -95,14 +103,6 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário não encontrado"
-        )
-    
-    cargo = payload.get("cargo")
-    
-    if cargo != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário nao tem permissao"
         )
 
     return usuario

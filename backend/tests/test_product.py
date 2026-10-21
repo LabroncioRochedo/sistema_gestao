@@ -53,6 +53,21 @@ def test_criar_produto_com_primeiro_lote(
 
     assert response.status_code == 201
 
+    response = client.get(
+        f"/produtos/{produto_id}/lote",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()[1]["quantidade"] == 90
+
+    response = client.delete(
+        f"/produtos/{produto_id}",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 200
+
 
 def test_excluir_produto(
     client: TestClient,

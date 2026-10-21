@@ -15,7 +15,7 @@ def auth_headers(client):
     response = client.post(
         "/auth/login",
         json={
-            "nome": "labroncio",
+            "nome": "Marcus",
             "senha": "12345678"
         }
     )
