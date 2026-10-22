@@ -20,7 +20,8 @@ router = APIRouter(
 )
 def create_usuario(
     data: UsuarioCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_admin)
 ):
     try:
 
