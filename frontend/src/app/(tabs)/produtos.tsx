@@ -15,8 +15,6 @@ import {
 import api from "@/services/api";
 import { useRouter } from "expo-router";
 
-const router = useRouter();
-
 type Produto = {
   id: number;
   nome: string;
@@ -69,6 +67,7 @@ function obterStatus(quantidade: number) {
 }
 
 export default function ProdutosScreen() {
+  const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -126,7 +125,19 @@ export default function ProdutosScreen() {
     const status = obterStatus(item.quantidade);
 
     return (
-      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.7}
+          onPress={() =>
+            router.push({
+              pathname: "/lotes/[produto_id]",
+              params: {
+                produto_id: String(item.id),
+                produto_nome: item.nome,
+              },
+            })
+          }
+        >
         <View style={styles.iconeProduto}>
           <Text style={styles.iconeTexto}>▦</Text>
         </View>
@@ -162,7 +173,7 @@ export default function ProdutosScreen() {
             {status.texto}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
