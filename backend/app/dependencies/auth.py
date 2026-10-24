@@ -53,13 +53,11 @@ def require_admin(
             detail="Usuário não encontrado"
         )
     
-    cargo = payload.get("cargo")
-    
-    if cargo != "admin":
+    if usuario.cargo != "admin":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário nao tem permissao"
-        )
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para executar esta operação"
+    )
 
     return usuario
 

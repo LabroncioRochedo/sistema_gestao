@@ -27,4 +27,4 @@ def authenticate_user(
     if not senha_valida:
         raise ValueError("Usuário ou senha inválidos")
 
-    return create_access_token(usuario.id,usuario.cargo)
+    return create_access_token(usuario.id)
