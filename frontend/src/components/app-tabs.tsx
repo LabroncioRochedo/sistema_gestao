@@ -1,6 +1,6 @@
 
 import { NativeTabs } from
-  "expo-router/unstable-native-tabs";
+  "expo-router/native-tabs";
 
 import { useColorScheme } from "react-native";
 

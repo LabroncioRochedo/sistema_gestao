@@ -1,29 +1,41 @@
 
-import { View, Text, StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { Redirect } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Painel
-      </Text>
-      <Text>
-        Bem-vindo ao sistema de gestão
-      </Text>
-    </View>
+  const [destino, setDestino] = useState<"/(auth)/login" | "/(tabs)" | null>(
+    null
   );
-}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-});
+  useEffect(() => {
+    async function verificarAutenticacao() {
+      try {
+        const token = await SecureStore.getItemAsync("token");
+
+        setDestino(token ? "/(tabs)" : "/(auth)/login");
+      } catch {
+        setDestino("/(auth)/login");
+      }
+    }
+
+    verificarAutenticacao();
+  }, []);
+
+  if (destino === null) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return <Redirect href={destino} />;
+}

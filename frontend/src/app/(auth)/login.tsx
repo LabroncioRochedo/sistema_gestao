@@ -193,7 +193,9 @@ export default function LoginScreen() {
                           secureTextEntry={!mostrarSenha}
                           autoCapitalize="none"
                           returnKeyType="done"
-                          onSubmitEditing={handleSubmit(entrar)}
+                          onSubmitEditing={() => {
+                            handleSubmit(entrar)();
+                          }}
                           editable={!isSubmitting}
                         />
                       )}
@@ -246,7 +248,9 @@ export default function LoginScreen() {
                     styles.button,
                     isSubmitting && styles.buttonDisabled,
                   ]}
-                  onPress={handleSubmit(entrar)}
+                  onPress={() => {
+                            handleSubmit(entrar)();
+                          }}
                   disabled={isSubmitting}
                   activeOpacity={0.8}
                 >
