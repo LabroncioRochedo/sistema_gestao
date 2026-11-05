@@ -4,13 +4,6 @@ export default function TabsLayout() {
   return (
     <Tabs>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: "Início",
-        }}
-      />
-
-      <Tabs.Screen
         name="produtos"
         options={{
           title: "Produtos",
