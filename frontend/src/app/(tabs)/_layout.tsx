@@ -23,20 +23,6 @@ export default function TabsLayout() {
           title: "Vendas",
         }}
       />
-
-      <Tabs.Screen
-        name="novo-produto"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-      name="comandas/[id]"
-      options={{
-        href: null,
-      }}
-      />
     </Tabs>
   );
 }

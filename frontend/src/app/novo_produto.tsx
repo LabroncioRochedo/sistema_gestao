@@ -286,7 +286,7 @@ export default function NovoProduto() {
             styles.botao,
             carregando && styles.botaoDesativado,
           ]}
-          onPress={handleSubmit(cadastrarProduto)}
+          onPress={() => handleSubmit(cadastrarProduto)()}
           disabled={carregando}
         >
           <Text style={styles.botaoTexto}>

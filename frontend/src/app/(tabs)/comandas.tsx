@@ -101,7 +101,7 @@ export default function ComandasScreen() {
 
   function abrirComanda(comanda: Comanda) {
     router.push({
-      pathname: "/(tabs)/comandas/[id]",
+      pathname: "/comandas/[id]",
       params: { id: String(comanda.id) },
     });
   }

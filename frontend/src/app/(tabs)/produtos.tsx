@@ -285,7 +285,11 @@ export default function ProdutosScreen() {
 
         <TouchableOpacity
           style={styles.botaoNovo}
-          onPress={() => router.push("/(tabs)/novo-produto")}
+          onPress={() => {
+            console.log("Botão novo produto pressionado");
+            router.push("/novo_produto");
+            console.log("Depois da navegação");
+          }}
         >
           <Text style={styles.botaoNovoTexto}>
             + Novo produto

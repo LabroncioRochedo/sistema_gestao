@@ -32,6 +32,21 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
+
+        <Stack.Screen
+          name="novo_produto"
+          options={{
+            title: "Novo produto",
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="comandas/[id]"
+          options={{
+            title: "Comanda",
+            headerShown: true,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
