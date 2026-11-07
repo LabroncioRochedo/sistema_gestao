@@ -153,9 +153,6 @@ export default function ProdutosScreen() {
             Quantidade: {item.quantidade}
           </Text>
 
-          <Text style={styles.detalhe}>
-            Validade: {formatarData(item.data_de_validade)}
-          </Text>
         </View>
 
         <View

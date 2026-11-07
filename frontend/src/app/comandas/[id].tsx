@@ -31,6 +31,7 @@ type ItemComanda = {
   quantidade: number;
   preco_unitario?: number;
   preco?: number;
+  usuario_nome?: string;
 };
 
 type Comanda = {
@@ -419,7 +420,7 @@ export default function DetalhesComanda() {
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemNome}>{nomeDoItem(item)}</Text>
                     <Text style={styles.itemDetalhe}>
-                      {item.quantidade} × {formatarMoeda(preco)}
+                      {item.quantidade} × {formatarMoeda(preco)} {item.usuario_nome}
                     </Text>
                   </View>
 
