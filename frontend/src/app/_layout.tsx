@@ -47,6 +47,13 @@ export default function RootLayout() {
             headerShown: true,
           }}
         />
+        <Stack.Screen
+          name="venda-direta"
+          options={{
+            title: "venda direta",
+            headerShown: true,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );

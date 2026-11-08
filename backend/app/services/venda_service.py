@@ -1,5 +1,5 @@
 from app.repositories import venda_repository
-
+from app.schemas.venda_schema import VendaDiretaListaCreate
 
 def vender_comanda(
     db,
@@ -14,19 +14,16 @@ def vender_comanda(
         forma_pagamento=forma_pagamento
     )
 
-def vender_produto_direto(
-    db,
-    produto_id: int,
-    quantidade: int,
+def vender_produtos_direto(
+    db: Session,
+    dados: VendaDiretaListaCreate,
     usuario_id: int,
-    forma_pagamento: str,
 ):
-    return venda_repository.vender_produto_direto(
+    return venda_repository.vender_produtos_direto(
         db=db,
-        produto_id=produto_id,
-        quantidade=quantidade,
+        itens=dados.itens,
         usuario_id=usuario_id,
-        forma_pagamento=forma_pagamento,
+        forma_pagamento=dados.forma_pagamento,
     )
 
 def listar_vendas(db):

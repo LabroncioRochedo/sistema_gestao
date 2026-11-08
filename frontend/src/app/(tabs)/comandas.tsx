@@ -227,7 +227,20 @@ export default function ComandasScreen() {
           </View>
         </View>
 
-        <Text style={styles.secaoTitulo}>Todas as comandas</Text>
+        <View style={styles.secaoCabecalho}>
+          <Text style={styles.secaoTitulo}>
+            Todas as comandas
+          </Text>
+
+          <TouchableOpacity
+            style={styles.botaoVendaDireta}
+            onPress={() => router.push("/venda-direta")}
+          >
+            <Text style={styles.botaoVendaDiretaTexto}>
+              Venda direta
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {carregando ? (
           <View style={styles.centro}>
@@ -395,7 +408,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "bold",
     color: "#111827",
-    marginBottom: 12,
   },
   lista: {
     paddingBottom: 30,
@@ -454,6 +466,25 @@ const styles = StyleSheet.create({
   statusFechada: {
     backgroundColor: "#F3F4F6",
   },
+  secaoCabecalho: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+botaoVendaDireta: {
+  backgroundColor: "#16A34A",
+  paddingHorizontal: 12,
+  paddingVertical: 9,
+  borderRadius: 9,
+},
+
+botaoVendaDiretaTexto: {
+  color: "#FFFFFF",
+  fontSize: 12,
+  fontWeight: "bold",
+},
   statusTexto: {
     fontSize: 12,
     fontWeight: "bold",

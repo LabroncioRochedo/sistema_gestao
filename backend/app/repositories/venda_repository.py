@@ -88,53 +88,16 @@ def vender_comanda(
         db.rollback()
         raise
 
-def vender_produto_direto(
+def vender_produtos_direto(
     db: Session,
-    produto_id: int,
-    quantidade: int,
+    itens: list[VendaDiretaCreate],
     usuario_id: int,
     forma_pagamento: str,
 ):
     try:
+        valor_total = Decimal("0.00")
 
-        # Verifica se o produto existe
-        produto = db.scalar(
-            select(Produto)
-            .where(Produto.id == produto_id)
-        )
-
-        if produto is None:
-            raise ValueError("Produto não encontrado")
-
-        # Busca e bloqueia os lotes válidos,
-        # ordenados pela data de validade.
-        lotes = db.scalars(
-            select(Lote)
-            .where(
-                Lote.produto_id == produto_id,
-                Lote.quantidade > 0,
-                Lote.data_de_validade >= date.today()
-            )
-            .order_by(
-                Lote.data_de_validade.asc(),
-                Lote.id.asc()
-            )
-            .with_for_update()
-        ).all()
-
-        estoque_disponivel = sum(
-            lote.quantidade for lote in lotes
-        )
-
-        if estoque_disponivel < quantidade:
-            raise ValueError(
-                "Estoque insuficiente nos lotes válidos"
-            )
-
-        preco_unitario = Decimal(str(produto.preco))
-        valor_total = preco_unitario * quantidade
-
-        # Cria a venda
+        # Cria uma única venda
         venda = Venda(
             usuario_id=usuario_id,
             valor_total=valor_total,
@@ -145,31 +108,78 @@ def vender_produto_direto(
         db.add(venda)
         db.flush()
 
-        quantidade_restante = quantidade
+        # Percorre os produtos recebidos
+        for dados_item in itens:
 
-        # Desconta o estoque seguindo FEFO:
-        # primeiro o lote que vence primeiro.
-        for lote in lotes:
-            if quantidade_restante == 0:
-                break
-
-            quantidade_utilizada = min(
-                lote.quantidade,
-                quantidade_restante
+            produto = db.scalar(
+                select(Produto)
+                .where(Produto.id == dados_item.produto_id)
             )
 
-            lote.quantidade -= quantidade_utilizada
-            quantidade_restante -= quantidade_utilizada
+            if produto is None:
+                raise ValueError(
+                    f"Produto {dados_item.produto_id} não encontrado"
+                )
 
+            # Busca e bloqueia os lotes válidos
+            lotes = db.scalars(
+                select(Lote)
+                .where(
+                    Lote.produto_id == produto.id,
+                    Lote.quantidade > 0,
+                    Lote.data_de_validade >= date.today()
+                )
+                .order_by(
+                    Lote.data_de_validade.asc(),
+                    Lote.id.asc()
+                )
+                .with_for_update()
+            ).all()
+
+            estoque_disponivel = sum(
+                lote.quantidade for lote in lotes
+            )
+
+            if estoque_disponivel < dados_item.quantidade:
+                raise ValueError(
+                    f"Estoque insuficiente para o produto {produto.nome}"
+                )
+
+            preco_unitario = Decimal(str(produto.preco))
+
+            quantidade_restante = dados_item.quantidade
+
+            # Consome o estoque dos lotes
+            for lote in lotes:
+
+                if quantidade_restante == 0:
+                    break
+
+                quantidade_utilizada = min(
+                    lote.quantidade,
+                    quantidade_restante
+                )
+
+                lote.quantidade -= quantidade_utilizada
+                quantidade_restante -= quantidade_utilizada
+
+            # Cria somente um registro para o produto
             item = ItemVenda(
                 venda_id=venda.id,
                 produto_id=produto.id,
                 usuario_id=usuario_id,
-                quantidade=quantidade_utilizada,
+                quantidade=dados_item.quantidade,
                 preco_unitario=preco_unitario,
             )
 
             db.add(item)
+
+            # Calcula o valor total
+            valor_total += (
+                preco_unitario * dados_item.quantidade
+            )
+
+        venda.valor_total = valor_total
 
         db.commit()
         db.refresh(venda)

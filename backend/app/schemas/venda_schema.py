@@ -33,7 +33,10 @@ from pydantic import BaseModel, Field
 class VendaDiretaCreate(BaseModel):
     produto_id: int
     quantidade: int = Field(gt=0)
-    forma_pagamento: str = Field(min_length=1, max_length=50)
+
+class VendaDiretaListaCreate(BaseModel):
+    itens: list[VendaDiretaCreate] = Field(min_length=1)
+    forma_pagamento: str
 
 class VendaResponse_listar(BaseModel):
     id: int
