@@ -9,7 +9,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
-from app.schemas.product_schema import ProdutoCreate,LoteCreat
+from app.schemas.product_schema import ProdutoCreate,LoteCreat, ProdutoUpdate
 from app.services import product_service
 from app.models.user_model import Usuario
 from app.dependencies.auth import require_admin,get_current_user
@@ -221,4 +221,24 @@ def excluir_produto(
         raise HTTPException(
             status_code=404,
             detail=str(error)
+        )
+
+@router.put("/{produto_id}")
+def atualizar_produto(
+    produto_id: int,
+    dados: ProdutoUpdate,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_admin)
+):
+    try:
+        return product_service.atualizar_produto(
+            db=db,
+            produto_id=produto_id,
+            dados=dados
+        )
+
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=404,
+            detail=str(erro)
         )

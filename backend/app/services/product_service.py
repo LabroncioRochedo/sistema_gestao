@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.product_model import Produto
 from app.models.lote_model import Lote
 from app.repositories import product_repository
-from app.schemas.product_schema import ProdutoCreate, LoteCreat
+from app.schemas.product_schema import ProdutoCreate, LoteCreat, ProdutoUpdate
 from app.services.storage_service import (
     delete_image,
     save_product_image,
@@ -86,4 +86,17 @@ def delete_product(
     product_repository.delete(
         db,
         produto
+    )
+
+def atualizar_produto(
+    db: Session,
+    produto_id: int,
+    dados: ProdutoUpdate
+) -> Produto:
+
+    return product_repository.atualizar_produto(
+        db=db,
+        produto_id=produto_id,
+        nome=dados.nome,
+        preco=dados.preco
     )

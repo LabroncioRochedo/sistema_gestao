@@ -10,6 +10,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  Modal
 } from "react-native";
 
 import api from "@/services/api";
@@ -73,6 +75,10 @@ export default function ProdutosScreen() {
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState("");
+  const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
+  const [nomeEditado, setNomeEditado] = useState("");
+  const [precoEditado, setPrecoEditado] = useState("");
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   const carregarProdutos = useCallback(async () => {
     try {
@@ -120,59 +126,136 @@ export default function ProdutosScreen() {
     setAtualizando(true);
     carregarProdutos();
   };
+  function abrirEdicao(produto: Produto) {
+  setProdutoEditando(produto);
+  setNomeEditado(produto.nome);
+  setPrecoEditado(String(produto.preco).replace(".", ","));
+}
 
+async function salvarEdicao() {
+  if (!produtoEditando) return;
+
+  const nome = nomeEditado.trim();
+
+  const precoTexto = precoEditado
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/^R\$/, "");
+
+  const preco = precoTexto.includes(",")
+    ? Number(precoTexto.replace(/\./g, "").replace(",", "."))
+    : Number(precoTexto);
+
+  if (!nome) {
+    Alert.alert("Atenção", "Informe o nome do produto.");
+    return;
+  }
+
+  if (!Number.isFinite(preco) || preco < 0) {
+    Alert.alert("Atenção", "Informe um preço válido.");
+    return;
+  }
+
+  setSalvandoEdicao(true);
+
+  try {
+    const token = await SecureStore.getItemAsync("token");
+
+    await api.put(
+      `/produtos/${produtoEditando.id}`,
+      {
+        nome,
+        preco,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setProdutos((anteriores) =>
+      anteriores.map((produto) =>
+        produto.id === produtoEditando.id
+          ? { ...produto, nome, preco }
+          : produto
+      )
+    );
+
+    setProdutoEditando(null);
+
+    Alert.alert("Sucesso", "Produto atualizado com sucesso.");
+  } catch (error: any) {
+    console.error("Erro ao editar produto:", error);
+
+    Alert.alert(
+      "Erro",
+      error?.response?.data?.detail ??
+        "Não foi possível atualizar o produto."
+    );
+  } finally {
+    setSalvandoEdicao(false);
+  }
+  }
   const renderProduto = ({ item }: { item: Produto }) => {
     const status = obterStatus(item.quantidade);
 
     return (
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.7}
-          onPress={() =>
-            router.push({
-              pathname: "/lotes/[produto_id]",
-              params: {
-                produto_id: String(item.id),
-                produto_nome: item.nome,
-              },
-            })
-          }
-        >
-        <View style={styles.iconeProduto}>
-          <Text style={styles.iconeTexto}>▦</Text>
-        </View>
+  <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.areaProduto}
+      activeOpacity={0.7}
+      onPress={() =>
+        router.push({
+          pathname: "/lotes/[produto_id]",
+          params: {
+            produto_id: String(item.id),
+            produto_nome: item.nome,
+          },
+        })
+      }
+    >
+      <View style={styles.iconeProduto}>
+        <Text style={styles.iconeTexto}>▦</Text>
+      </View>
 
-        <View style={styles.infoProduto}>
-          <Text style={styles.nomeProduto}>{item.nome}</Text>
+      <View style={styles.infoProduto}>
+        <Text style={styles.nomeProduto}>{item.nome}</Text>
 
-          <Text style={styles.preco}>
-            {formatarPreco(item.preco)}
-          </Text>
+        <Text style={styles.preco}>
+          {formatarPreco(item.preco)}
+        </Text>
 
-          <Text style={styles.detalhe}>
-            Quantidade: {item.quantidade}
-          </Text>
+        <Text style={styles.detalhe}>
+          Quantidade: {item.quantidade}
+        </Text>
+      </View>
 
-        </View>
-
-        <View
+      <View
+        style={[
+          styles.status,
+          { backgroundColor: status.fundo },
+        ]}
+      >
+        <Text
           style={[
-            styles.status,
-            { backgroundColor: status.fundo },
+            styles.statusTexto,
+            { color: status.cor },
           ]}
         >
-          <Text
-            style={[
-              styles.statusTexto,
-              { color: status.cor },
-            ]}
-          >
-            {status.texto}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+          {status.texto}
+        </Text>
+      </View>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.botaoEditar}
+      onPress={() => abrirEdicao(item)}
+    >
+      <Text style={styles.botaoEditarTexto}>Editar</Text>
+    </TouchableOpacity>
+  </View>
+  )};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -290,6 +373,62 @@ export default function ProdutosScreen() {
             + Novo produto
           </Text>
         </TouchableOpacity>
+        <Modal
+          visible={produtoEditando !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setProdutoEditando(null)}
+        >
+          <View style={styles.modalFundo}>
+            <View style={styles.modalConteudo}>
+              <Text style={styles.modalTitulo}>
+                Editar produto
+              </Text>
+
+              <Text style={styles.labelEdicao}>Nome</Text>
+
+              <TextInput
+                style={styles.inputEdicao}
+                value={nomeEditado}
+                onChangeText={setNomeEditado}
+                placeholder="Nome do produto"
+              />
+
+              <Text style={styles.labelEdicao}>Preço</Text>
+
+              <TextInput
+                style={styles.inputEdicao}
+                value={precoEditado}
+                onChangeText={setPrecoEditado}
+                placeholder="Preço do produto"
+                keyboardType="decimal-pad"
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.botaoSalvar,
+                  salvandoEdicao && styles.botaoDesativado,
+                ]}
+                onPress={salvarEdicao}
+                disabled={salvandoEdicao}
+              >
+                <Text style={styles.botaoSalvarTexto}>
+                  {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.botaoCancelar}
+                onPress={() => setProdutoEditando(null)}
+                disabled={salvandoEdicao}
+              >
+                <Text style={styles.botaoCancelarTexto}>
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -304,6 +443,95 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+  },
+  areaProduto: {
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 11,
+},
+
+botaoEditar: {
+  backgroundColor: "#EFF6FF",
+  paddingHorizontal: 10,
+  paddingVertical: 9,
+  borderRadius: 8,
+},
+
+botaoEditarTexto: {
+  color: "#2563EB",
+  fontSize: 12,
+  fontWeight: "bold",
+},
+
+modalFundo: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 20,
+},
+
+modalConteudo: {
+  width: "100%",
+  backgroundColor: "#FFFFFF",
+  borderRadius: 16,
+  padding: 20,
+},
+
+modalTitulo: {
+  fontSize: 21,
+  fontWeight: "bold",
+  color: "#0F172A",
+  marginBottom: 20,
+},
+
+labelEdicao: {
+  color: "#334155",
+  fontSize: 14,
+  fontWeight: "600",
+  marginBottom: 7,
+},
+
+  inputEdicao: {
+  backgroundColor: "#FFFFFF",
+  borderWidth: 1,
+  borderColor: "#CBD5E1",
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 12,
+  fontSize: 15,
+  color: "#0F172A",
+  marginBottom: 16,
+  },
+
+  botaoSalvar: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 5,
+  },
+
+  botaoSalvarTexto: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+
+  botaoCancelar: {
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 5,
+  },
+
+  botaoCancelarTexto: {
+    color: "#64748B",
+    fontWeight: "600",
+  },
+
+  botaoDesativado: {
+    opacity: 0.6,
   },
   cabecalho: {
     marginBottom: 20,

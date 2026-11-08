@@ -121,3 +121,32 @@ def delete(
 
     db.delete(produto)
     db.commit()
+
+def atualizar_produto(
+    db: Session,
+    produto_id: int,
+    nome: str,
+    preco: Decimal
+) -> Produto:
+
+    try:
+        produto = db.scalar(
+            select(Produto)
+            .where(Produto.id == produto_id)
+            .with_for_update()
+        )
+
+        if produto is None:
+            raise ValueError("Produto não encontrado")
+
+        produto.nome = nome
+        produto.preco = preco
+
+        db.commit()
+        db.refresh(produto)
+
+        return produto
+
+    except Exception:
+        db.rollback()
+        raise

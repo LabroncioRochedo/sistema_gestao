@@ -28,3 +28,7 @@ class LoteCreat(BaseModel):
     )
 
     data_de_validade: date
+
+class ProdutoUpdate(BaseModel):
+    nome: str = Field(min_length=1, max_length=100)
+    preco: Decimal = Field(gt=0)
