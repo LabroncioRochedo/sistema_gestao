@@ -6,20 +6,18 @@ from app.repositories import comanda_repository
 from app.schemas.item_comanda_schema import ItemComandaCreate
 
 
-def adicionar_item(
+def adicionar_itens(
     db: Session,
     comanda_id: int,
-    dados: ItemComandaCreate,
+    dados: ItensComandaCreate,
     usuario_id: int
-) -> ItemComanda:
+) -> list[ItemComanda]:
 
-    return item_comanda_repository.adicionar_item(
+    return item_comanda_repository.adicionar_itens(
         db=db,
         comanda_id=comanda_id,
-        produto_id=dados.produto_id,
-        usuario_id=usuario_id,
-        quantidade=dados.quantidade,
-        comentario=dados.comentario
+        itens=dados.itens,
+        usuario_id=usuario_id
     )
 
 def listar_itens(

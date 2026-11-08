@@ -17,17 +17,14 @@ from app.models.lote_model import Lote
 from app.models.item_comanda_model import ItemComanda
 
 
-def adicionar_item(
+def adicionar_itens(
     db: Session,
     comanda_id: int,
-    produto_id: int,
-    usuario_id: int,
-    quantidade: int,
-    comentario: str | None
+    itens: list[ItemComandaCreate],
+    usuario_id: int
 ) -> list[ItemComanda]:
 
     try:
-
         # Busca e bloqueia a comanda
         comanda = db.scalar(
             select(Comanda)
@@ -43,65 +40,77 @@ def adicionar_item(
                 "Não é possível adicionar itens a uma comanda fechada"
             )
 
-        # Verifica se o produto existe
-        produto = db.scalar(
-            select(Produto)
-            .where(Produto.id == produto_id)
-        )
-
-        if produto is None:
-            raise ValueError("Produto não encontrado")
-
-        # Busca os lotes com estoque, do que vence primeiro
-        # para o que vence por último, bloqueando as linhas.
-        lotes = db.scalars(
-            select(Lote)
-            .where(
-                Lote.produto_id == produto_id,
-                Lote.quantidade > 0,
-                Lote.data_de_validade >= __import__("datetime").date.today()
-            )
-            .order_by(
-                Lote.data_de_validade.asc(),
-                Lote.id.asc()
-            )
-            .with_for_update()
-        ).all()
-
-        estoque_disponivel = sum(lote.quantidade for lote in lotes)
-
-        if estoque_disponivel < quantidade:
-            raise ValueError("Estoque insuficiente nos lotes válidos")
-
-        quantidade_restante = quantidade
         itens_criados = []
 
-        # Consome primeiro o lote que vence mais cedo.
-        for lote in lotes:
-            if quantidade_restante == 0:
-                break
+        # Percorre todos os itens recebidos
+        for dados_item in itens:
 
-            quantidade_utilizada = min(
-                lote.quantidade,
-                quantidade_restante
+            # Verifica se o produto existe
+            produto = db.scalar(
+                select(Produto)
+                .where(Produto.id == dados_item.produto_id)
             )
 
-            lote.quantidade -= quantidade_utilizada
-            quantidade_restante -= quantidade_utilizada
+            if produto is None:
+                raise ValueError(
+                    f"Produto {dados_item.produto_id} não encontrado"
+                )
 
-            item = ItemComanda(
-                comanda_id=comanda_id,
-                produto_id=produto_id,
-                lote_id=lote.id,
-                usuario_id=usuario_id,
-                quantidade=quantidade_utilizada,
-                preco_unitario=produto.preco,
-                comentario=comentario
+            # Busca e bloqueia os lotes válidos com estoque
+            lotes = db.scalars(
+                select(Lote)
+                .where(
+                    Lote.produto_id == dados_item.produto_id,
+                    Lote.quantidade > 0,
+                    Lote.data_de_validade >= date.today()
+                )
+                .order_by(
+                    Lote.data_de_validade.asc(),
+                    Lote.id.asc()
+                )
+                .with_for_update()
+            ).all()
+
+            estoque_disponivel = sum(
+                lote.quantidade for lote in lotes
             )
 
-            db.add(item)
-            itens_criados.append(item)
+            if estoque_disponivel < dados_item.quantidade:
+                raise ValueError(
+                    f"Estoque insuficiente para o produto "
+                    f"{produto.nome}"
+                )
 
+            quantidade_restante = dados_item.quantidade
+
+            # Consome os lotes por ordem de vencimento
+            for lote in lotes:
+
+                if quantidade_restante == 0:
+                    break
+
+                quantidade_utilizada = min(
+                    lote.quantidade,
+                    quantidade_restante
+                )
+
+                lote.quantidade -= quantidade_utilizada
+                quantidade_restante -= quantidade_utilizada
+
+                item = ItemComanda(
+                    comanda_id=comanda_id,
+                    produto_id=produto.id,
+                    lote_id=lote.id,
+                    usuario_id=usuario_id,
+                    quantidade=quantidade_utilizada,
+                    preco_unitario=produto.preco,
+                    comentario=dados_item.comentario
+                )
+
+                db.add(item)
+                itens_criados.append(item)
+
+        # Persiste todos os itens de uma única vez
         db.commit()
 
         for item in itens_criados:

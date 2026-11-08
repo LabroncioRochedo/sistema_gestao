@@ -55,8 +55,7 @@ export default function DetalhesComanda() {
   const [fechando, setFechando] = useState(false);
 
   const [mostrarAdicionar, setMostrarAdicionar] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
-  const [quantidade, setQuantidade] = useState("1");
+  const [quantidades, setQuantidades] = useState<Record<number, number>>({});
   const [busca, setBusca] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
 
@@ -100,51 +99,67 @@ export default function DetalhesComanda() {
   const produtosFiltrados = produtos.filter((produto) =>
     produto.nome.toLowerCase().includes(busca.toLowerCase())
   );
+  function alterarQuantidade(produto: Produto, incremento: number) {
+  setQuantidades((anteriores) => {
+    const atual = anteriores[produto.id] ?? 0;
+    const novaQuantidade = Math.max(
+      0,
+      Math.min(produto.quantidade, atual + incremento)
+    );
 
+    return {
+      ...anteriores,
+      [produto.id]: novaQuantidade,
+    };
+  });
+  }
   async function adicionarItem() {
-    if (!produtoSelecionado) {
-      Alert.alert("Selecione um produto", "Escolha um produto da lista.");
-      return;
-    }
+  const listaItens = produtos
+    .filter((produto) => (quantidades[produto.id] ?? 0) > 0)
+    .map((produto) => ({
+  produto_id: produto.id,
+  quantidade: quantidades[produto.id] ?? 0,
+  }));
 
-    const qtd = Number(quantidade);
+  if (listaItens.length === 0) {
+    Alert.alert(
+      "Nenhum produto selecionado",
+      "Adicione pelo menos um produto antes de continuar."
+    );
+    return;
+  }
 
-    if (!Number.isInteger(qtd) || qtd < 1) {
-      Alert.alert("Quantidade inválida", "Informe um número inteiro maior que zero.");
-      return;
-    }
+  setAdicionando(true);
 
-    if (qtd > produtoSelecionado.quantidade) {
-      Alert.alert(
-        "Estoque insuficiente",
-        `Disponível: ${produtoSelecionado.quantidade} unidades.`
-      );
-      return;
-    }
+  try {
+    const token = await SecureStore.getItemAsync("token");
 
-    setAdicionando(true);
+    await api.post(
+      `/comandas/${id}/itens`,
+      {
+        itens: listaItens,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-    try {
-      const token = await SecureStore.getItemAsync("token");
-      await api.post(`/comandas/${id}/itens`, {
-        produto_id: produtoSelecionado.id,
-        quantidade: qtd,
-      }, { headers: { Authorization: `Bearer ${token}`, }, });
+    setQuantidades({});
+    setBusca("");
+    setMostrarAdicionar(false);
 
-      setProdutoSelecionado(null);
-      setQuantidade("1");
-      setBusca("");
-      setMostrarAdicionar(false);
-      await carregarDados();
-    } catch (erro: any) {
-      Alert.alert(
-        "Erro",
-        erro?.response?.data?.detail ??
-          "Não foi possível adicionar o produto."
-      );
-    } finally {
-      setAdicionando(false);
-    }
+    await carregarDados();
+  } catch (erro: any) {
+    Alert.alert(
+      "Erro",
+      erro?.response?.data?.detail ??
+        "Não foi possível adicionar os produtos."
+    );
+  } finally {
+    setAdicionando(false);
+  }
   }
 
   function confirmarRemocao(item: ItemComanda) {
@@ -339,57 +354,74 @@ export default function DetalhesComanda() {
               onChangeText={setBusca}
             />
 
-            <Text style={styles.label}>Selecione um produto</Text>
-            {produtosFiltrados.length === 0 ? (
-              <Text style={styles.semProduto}>Nenhum produto encontrado.</Text>
-            ) : (
-              <View style={styles.listaProdutos}>
-                {produtosFiltrados.map((produto) => {
-                  const selecionado = produtoSelecionado?.id === produto.id;
-                  const semEstoque = produto.quantidade <= 0;
+            <Text style={styles.label}>Selecione as quantidades</Text>
 
-                  return (
-                    <TouchableOpacity
-                      key={produto.id}
-                      disabled={semEstoque}
-                      style={[
-                        styles.produtoOpcao,
-                        selecionado && styles.produtoSelecionado,
-                        semEstoque && styles.produtoIndisponivel,
-                      ]}
-                      onPress={() => setProdutoSelecionado(produto)}
-                    >
-                      <View style={styles.produtoOpcaoInfo}>
-                        <Text style={styles.produtoNome}>{produto.nome}</Text>
-                        <Text style={styles.produtoDetalhe}>
-                          {formatarMoeda(produto.preco)} · Estoque: {produto.quantidade}
-                        </Text>
+              {produtosFiltrados.length === 0 ? (
+                <Text style={styles.semProduto}>
+                  Nenhum produto encontrado.
+                </Text>
+              ) : (
+                <View style={styles.listaProdutos}>
+                  {produtosFiltrados.map((produto) => {
+                    const quantidadeAtual = quantidades[produto.id] ?? 0;
+                    const semEstoque = produto.quantidade <= 0;
+
+                    return (
+                      <View
+                        key={produto.id}
+                        style={[
+                          styles.produtoOpcao,
+                          semEstoque && styles.produtoIndisponivel,
+                        ]}
+                      >
+                        <View style={styles.produtoOpcaoInfo}>
+                          <Text style={styles.produtoNome}>
+                            {produto.nome}
+                          </Text>
+
+                          <Text style={styles.produtoDetalhe}>
+                            {formatarMoeda(produto.preco)} · Estoque:{" "}
+                            {produto.quantidade}
+                          </Text>
+                        </View>
+
+                        <View style={styles.contador}>
+                          <TouchableOpacity
+                            style={[
+                              styles.contadorBotao,
+                              quantidadeAtual === 0 && styles.contadorDesativado,
+                            ]}
+                            onPress={() => alterarQuantidade(produto, -1)}
+                            disabled={quantidadeAtual === 0}
+                          >
+                            <Text style={styles.contadorBotaoTexto}>−</Text>
+                          </TouchableOpacity>
+
+                          <Text style={styles.contadorValor}>
+                            {quantidadeAtual}
+                          </Text>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.contadorBotao,
+                              (semEstoque ||
+                                quantidadeAtual >= produto.quantidade) &&
+                                styles.contadorDesativado,
+                            ]}
+                            onPress={() => alterarQuantidade(produto, 1)}
+                            disabled={
+                              semEstoque ||
+                              quantidadeAtual >= produto.quantidade
+                            }
+                          >
+                            <Text style={styles.contadorBotaoTexto}>+</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <Text style={selecionado ? styles.marcado : styles.selecionar}>
-                        {semEstoque ? "Sem estoque" : selecionado ? "Selecionado" : "Selecionar"}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            <Text style={styles.label}>Quantidade</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="number-pad"
-              value={quantidade}
-              onChangeText={setQuantidade}
-              placeholder="Ex.: 2"
-              placeholderTextColor="#9CA3AF"
-            />
-
-            {produtoSelecionado && (
-              <Text style={styles.disponivel}>
-                Disponível: {produtoSelecionado.quantidade} unidades
-              </Text>
-            )}
-
+                    );
+                  })}
+                </View>
+              )}
             <TouchableOpacity
               style={[styles.botaoPrimario, adicionando && styles.desativado]}
               onPress={adicionarItem}
@@ -517,6 +549,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     marginTop: 22,
+  },
+  contador: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+  },
+
+  contadorBotao: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  contadorDesativado: {
+    backgroundColor: "#D1D5DB",
+  },
+
+  contadorBotaoTexto: {
+    color: "#FFFFFF",
+    fontSize: 21,
+    fontWeight: "bold",
+  },
+
+  contadorValor: {
+    minWidth: 22,
+    textAlign: "center",
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 
   pagamentoTitulo: {

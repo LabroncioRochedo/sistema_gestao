@@ -10,6 +10,9 @@ class ItemComandaCreate(BaseModel):
         max_length=250
     )
 
+class ItensComandaCreate(BaseModel):
+    itens: list[ItemComandaCreate] = Field(min_length=1)
+    
 class ItemComandaResponse_criar(BaseModel):
     id: int
     comanda_id: int
