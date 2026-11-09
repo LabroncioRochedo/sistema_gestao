@@ -3,8 +3,21 @@ from sqlalchemy.orm import Session
 from app.models.item_comanda_model import ItemComanda
 from app.repositories import item_comanda_repository
 from app.repositories import comanda_repository
-from app.schemas.item_comanda_schema import ItemComandaCreate
+from app.schemas.item_comanda_schema import ItemComandaCreate,ItemOutros
 
+def adicionar_item_outros(
+    db: Session,
+    comanda_id: int,
+    dados: ItemOutros,
+    usuario_id: int
+):
+
+    return item_comanda_repository.adicionar_item_outro(
+        db=db,
+        comanda_id=comanda_id,
+        dados=dados,
+        usuario_id=usuario_id
+    )
 
 def adicionar_itens(
     db: Session,

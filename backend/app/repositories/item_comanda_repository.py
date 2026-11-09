@@ -16,6 +16,43 @@ from app.models.product_model import Produto
 from app.models.lote_model import Lote
 from app.models.item_comanda_model import ItemComanda
 
+def adicionar_item_outro(
+    db:Session,
+    comanda_id: int,
+    dados: ItemOutros,
+    usuario_id: int
+):
+
+    try:
+        comanda = db.scalar(
+            select(Comanda)
+            .where(Comanda.id == comanda_id)
+            .with_for_update()
+        )
+        if comanda is None:
+            raise ValueError("Comanda não encontrada")
+
+        if comanda.status != "aberta":
+            raise ValueError(
+                "Não é possível adicionar itens a uma comanda fechada"
+            )
+        item = ItemComanda(
+                    comanda_id=comanda_id,
+                    nome_produto=dados.nome_produto,
+                    usuario_id=usuario_id,
+                    quantidade=dados.quantidade,
+                    preco_unitario=dados.preco_unitario,
+                )
+
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+
+        return item
+
+    except Exception:
+        db.rollback()
+        raise      
 
 def adicionar_itens(
     db: Session,
@@ -131,7 +168,6 @@ def listar_itens(
         select(ItemComanda)
         .where(ItemComanda.comanda_id == comanda_id)
         .options(
-            selectinload(ItemComanda.produto),
             selectinload(ItemComanda.usuario)
         )
         .order_by(ItemComanda.id)
@@ -176,6 +212,9 @@ def deletar_item(
             raise ValueError("Item não encontrado nesta comanda")
         
         if item.lote_id == None:
+            db.delete(item)
+
+            db.commit()
             return
 
         # Busca e bloqueia o lote associado ao item

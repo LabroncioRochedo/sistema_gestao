@@ -6,6 +6,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user_model import Usuario
 from app.schemas.item_comanda_schema import (
     ItensComandaCreate,
+    ItemOutros,
     ItemComandaResponse_criar,
     ItemComandaResponse_listar
 )
@@ -17,6 +18,29 @@ router = APIRouter(
     tags=["Comandas"]
 )
 
+@router.post(
+    "/{comanda_id}/item/outros",
+    status_code=201
+)
+def adicionar_itens(
+    comanda_id: int,
+    dados: ItemOutros,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)
+):
+    try:
+        return item_comanda_service.adicionar_item_outros(
+            db=db,
+            comanda_id=comanda_id,
+            dados=dados,
+            usuario_id=usuario.id
+        )
+
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=400,
+            detail=str(erro)
+        )
 
 @router.post(
     "/{comanda_id}/itens",

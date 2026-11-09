@@ -10,6 +10,11 @@ class ItemComandaCreate(BaseModel):
         max_length=250
     )
 
+class ItemOutros(BaseModel):
+    nome_produto: str
+    preco_unitario: int
+    quantidade: int
+
 class ItensComandaCreate(BaseModel):
     itens: list[ItemComandaCreate] = Field(min_length=1)
     
@@ -32,15 +37,12 @@ from pydantic import BaseModel, ConfigDict, Field, AliasPath
 class ItemComandaResponse_listar(BaseModel):
     id: int
     comanda_id: int
-    produto_id: int
-    lote_id: int
+    produto_id: int | None
+    lote_id: int | None
     quantidade: int
     preco_unitario: Decimal
     comentario: str | None
-
-    produto_nome: str = Field(
-        validation_alias=AliasPath("produto", "nome")
-    )
+    nome_produto: str
 
     usuario_nome: str = Field(
         validation_alias=AliasPath("usuario", "nome")

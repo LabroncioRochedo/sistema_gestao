@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import api from "@/services/api";
@@ -45,6 +46,11 @@ export default function DetalhesComanda() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const [mostrarOutros, setMostrarOutros] = useState(false);
+  const [nomeProdutoOutro, setNomeProdutoOutro] = useState("");
+  const [precoUnitarioOutro, setPrecoUnitarioOutro] = useState("");
+  const [quantidadeOutro, setQuantidadeOutro] = useState("1");
+  const [adicionandoOutro, setAdicionandoOutro] = useState(false);
   const [comanda, setComanda] = useState<Comanda | null>(null);
   const [itens, setItens] = useState<ItemComanda[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -161,7 +167,81 @@ export default function DetalhesComanda() {
     setAdicionando(false);
   }
   }
+  async function adicionarOutroItem() {
+  const nomeLimpo = nomeProdutoOutro.trim();
 
+  const preco = Number(
+    precoUnitarioOutro.replace(",", ".")
+  );
+
+  const quantidade = Number(quantidadeOutro);
+
+  if (!nomeLimpo) {
+    Alert.alert("Campo obrigatório", "Informe o nome do produto.");
+    return;
+  }
+
+  if (
+    !precoUnitarioOutro.trim() ||
+    !Number.isInteger(preco) ||
+    preco < 0
+  ) {
+    Alert.alert(
+      "Preço inválido",
+      "Informe um preço unitário inteiro válido."
+    );
+    return;
+  }
+
+  if (
+    !quantidadeOutro.trim() ||
+    !Number.isInteger(quantidade) ||
+    quantidade <= 0
+  ) {
+    Alert.alert(
+      "Quantidade inválida",
+      "Informe uma quantidade maior que zero."
+    );
+    return;
+  }
+
+  setAdicionandoOutro(true);
+
+    try {
+      const token = await SecureStore.getItemAsync("token");
+
+      await api.post(
+        `/comandas/${id}/item/outros`,
+        {
+          nome_produto: nomeLimpo,
+          preco_unitario: preco,
+          quantidade: quantidade,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setNomeProdutoOutro("");
+      setPrecoUnitarioOutro("");
+      setQuantidadeOutro("1");
+      setMostrarOutros(false);
+
+      await carregarDados();
+
+      Alert.alert("Sucesso", "Item adicionado à comanda!");
+    } catch (erro: any) {
+      Alert.alert(
+        "Erro",
+        erro?.response?.data?.detail ??
+          "Não foi possível adicionar o item."
+      );
+    } finally {
+      setAdicionandoOutro(false);
+    }
+  }
   function confirmarRemocao(item: ItemComanda) {
     Alert.alert(
       "Remover item",
@@ -330,18 +410,122 @@ export default function DetalhesComanda() {
 
         <View style={styles.secaoCabecalho}>
           <Text style={styles.secaoTitulo}>Produtos lançados</Text>
+
           {aberta && (
-            <TouchableOpacity
-              style={styles.botaoAdicionar}
-              onPress={() => setMostrarAdicionar((valor) => !valor)}
-            >
-              <Text style={styles.botaoAdicionarTexto}>
-                {mostrarAdicionar ? "Cancelar" : "+ Adicionar"}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.botoesAdicionar}>
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={() => {
+                  setMostrarAdicionar((valor) => !valor);
+                  setMostrarOutros(false);
+                }}
+              >
+                <Text style={styles.botaoAdicionarTexto}>
+                  {mostrarAdicionar ? "Cancelar" : "+ Adicionar"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.botaoOutros}
+                onPress={() => {
+                  setMostrarAdicionar(false);
+                  setMostrarOutros(true);
+                }}
+              >
+                <Text style={styles.botaoAdicionarTexto}>
+                  + Outros
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
+        <Modal
+          visible={mostrarOutros}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setMostrarOutros(false)}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalTela}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <ScrollView
+              contentContainerStyle={styles.modalConteudo}
+              keyboardShouldPersistTaps="handled"
+            >
+              <TouchableOpacity
+                onPress={() => setMostrarOutros(false)}
+              >
+                <Text style={styles.voltar}>‹ Voltar para comanda</Text>
+              </TouchableOpacity>
 
+              <Text style={styles.modalTitulo}>Adicionar outros</Text>
+
+              <Text style={styles.modalSubtitulo}>
+                Cadastre um item que não está na lista de produtos.
+              </Text>
+
+              <View style={styles.formularioOutro}>
+                <Text style={styles.label}>Nome do produto</Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex.: Serviço, taxa ou produto avulso"
+                  placeholderTextColor="#9CA3AF"
+                  value={nomeProdutoOutro}
+                  onChangeText={setNomeProdutoOutro}
+                />
+
+                <Text style={styles.label}>Preço unitário</Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex.: 15"
+                  placeholderTextColor="#9CA3AF"
+                  value={precoUnitarioOutro}
+                  onChangeText={setPrecoUnitarioOutro}
+                  keyboardType="decimal-pad"
+                />
+
+                <Text style={styles.label}>Quantidade</Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex.: 1"
+                  placeholderTextColor="#9CA3AF"
+                  value={quantidadeOutro}
+                  onChangeText={setQuantidadeOutro}
+                  keyboardType="number-pad"
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.botaoPrimario,
+                    adicionandoOutro && styles.desativado,
+                  ]}
+                  onPress={adicionarOutroItem}
+                  disabled={adicionandoOutro}
+                >
+                  <Text style={styles.botaoPrimarioTexto}>
+                    {adicionandoOutro
+                      ? "Adicionando..."
+                      : "Adicionar à comanda"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.botaoCancelarOutro}
+                  onPress={() => setMostrarOutros(false)}
+                  disabled={adicionandoOutro}
+                >
+                  <Text style={styles.botaoCancelarOutroTexto}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
         {mostrarAdicionar && aberta && (
           <View style={styles.formulario}>
             <Text style={styles.formTitulo}>Adicionar produto</Text>
@@ -549,6 +733,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     marginTop: 22,
+  },
+  botoesAdicionar: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  },
+
+  botaoOutros: {
+    backgroundColor: "#16A34A",
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 9,
+  },
+
+  modalTela: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+
+  modalConteudo: {
+    flexGrow: 1,
+    padding: 20,
+    paddingTop: 50,
+  },
+
+  modalTitulo: {
+    fontSize: 27,
+    color: "#111827",
+    fontWeight: "bold",
+    marginTop: 20,
+  },
+
+  modalSubtitulo: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginTop: 6,
+    marginBottom: 24,
+  },
+
+  formularioOutro: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  botaoCancelarOutro: {
+    alignItems: "center",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+
+  botaoCancelarOutroTexto: {
+    color: "#6B7280",
+    fontWeight: "600",
+    fontSize: 14,
   },
   contador: {
   flexDirection: "row",

@@ -9,7 +9,7 @@ class VendaCreate(BaseModel):
 
 class ItemVendaResponse(BaseModel):
     id: int
-    produto_id: int
+    produto_id: int | None
     quantidade: int
     preco_unitario: Decimal
 
