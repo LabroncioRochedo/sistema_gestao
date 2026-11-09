@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput
 } from "react-native";
 import { useRouter } from "expo-router";
 import api from "@/services/api";
@@ -50,6 +51,7 @@ export default function VendaDiretaScreen() {
 
   const [carregando, setCarregando] = useState(true);
   const [vendendo, setVendendo] = useState(false);
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     carregarProdutos();
@@ -92,7 +94,9 @@ export default function VendaDiretaScreen() {
       };
     });
   }
-
+  const produtosFiltrados = produtos.filter((produto) =>
+  produto.nome.toLowerCase().includes(busca.trim().toLowerCase())
+  );
   const itensSelecionados = produtos
     .filter((produto) => (quantidades[produto.id] ?? 0) > 0)
     .map((produto) => ({
@@ -190,13 +194,25 @@ export default function VendaDiretaScreen() {
               <Text style={styles.secaoTitulo}>
                 Produtos
               </Text>
-
+              <TextInput
+                style={styles.busca}
+                placeholder="Buscar produto..."
+                placeholderTextColor="#9CA3AF"
+                value={busca}
+                onChangeText={setBusca}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
               {produtos.length === 0 ? (
                 <Text style={styles.textoEstado}>
                   Nenhum produto cadastrado.
                 </Text>
+              ) : produtosFiltrados.length === 0 ? (
+                <Text style={styles.textoEstado}>
+                  Nenhum produto encontrado.
+                </Text>
               ) : (
-                produtos.map((produto) => {
+                produtosFiltrados.map((produto) => {
                   const quantidadeAtual =
                     quantidades[produto.id] ?? 0;
 
@@ -369,6 +385,17 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 14,
     marginTop: 5,
+  },
+  busca: {
+  backgroundColor: "#FFFFFF",
+  borderWidth: 1,
+  borderColor: "#CBD5E1",
+  borderRadius: 10,
+  paddingHorizontal: 14,
+  paddingVertical: 12,
+  fontSize: 14,
+  color: "#111827",
+  marginBottom: 14,
   },
   lista: {
     flex: 1,

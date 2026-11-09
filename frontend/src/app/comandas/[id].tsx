@@ -525,7 +525,7 @@ export default function DetalhesComanda() {
               disabled={fechando || itens.length === 0}
             >
               <Text style={styles.botaoFecharTexto}>
-                {fechando ? "Fechando..." : "Fechar comanda"}
+                {fechando ? "Fechando..." : "Encerrar comanda"}
               </Text>
             </TouchableOpacity>
           </>

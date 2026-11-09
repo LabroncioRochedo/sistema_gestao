@@ -27,6 +27,7 @@ type Comanda = {
 export default function ComandasScreen() {
   const router = useRouter();
 
+  const [busca, setBusca] = useState("");
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -98,7 +99,13 @@ export default function ComandasScreen() {
   const encerradas = comandas.filter(
     (comanda) => comanda.status?.toLowerCase() !== "aberta"
   );
+  const comandasFiltradas = comandas.filter((comanda) => {
+  const termo = busca.trim().toLowerCase();
 
+  return (
+    comanda.nome.toLowerCase().includes(termo)
+  );
+  });
   function abrirComanda(comanda: Comanda) {
     router.push({
       pathname: "/comandas/[id]",
@@ -226,7 +233,15 @@ export default function ComandasScreen() {
             <Text style={styles.resumoLegenda}>Total</Text>
           </View>
         </View>
-
+        <TextInput
+          style={styles.busca}
+          placeholder="Buscar comanda pelo nome ou número..."
+          placeholderTextColor="#9CA3AF"
+          value={busca}
+          onChangeText={setBusca}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
         <View style={styles.secaoCabecalho}>
           <Text style={styles.secaoTitulo}>
             Todas as comandas
@@ -251,11 +266,11 @@ export default function ComandasScreen() {
           </View>
         ) : (
           <FlatList
-            data={comandas}
+            data={comandasFiltradas}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderComanda}
             contentContainerStyle={
-              comandas.length === 0
+              comandasFiltradas.length === 0
                 ? styles.listaVazia
                 : styles.lista
             }
@@ -269,20 +284,29 @@ export default function ComandasScreen() {
             ListEmptyComponent={
               <View style={styles.vazio}>
                 <Text style={styles.vazioIcone}>▤</Text>
+
                 <Text style={styles.vazioTitulo}>
-                  Nenhuma comanda ainda
+                  {comandas.length === 0
+                    ? "Nenhuma comanda ainda"
+                    : "Nenhuma comanda encontrada"}
                 </Text>
+
                 <Text style={styles.vazioTexto}>
-                  Crie uma comanda para começar a registrar pedidos.
+                  {comandas.length === 0
+                    ? "Crie uma comanda para começar a registrar pedidos."
+                    : "Tente pesquisar usando outro nome ou número."}
                 </Text>
-                <TouchableOpacity
-                  style={styles.vazioBotao}
-                  onPress={() => setMostrarFormulario(true)}
-                >
-                  <Text style={styles.vazioBotaoTexto}>
-                    + Criar primeira comanda
-                  </Text>
-                </TouchableOpacity>
+
+                {comandas.length === 0 && (
+                  <TouchableOpacity
+                    style={styles.vazioBotao}
+                    onPress={() => setMostrarFormulario(true)}
+                  >
+                    <Text style={styles.vazioBotaoTexto}>
+                      + Criar primeira comanda
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             }
           />
@@ -301,6 +325,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     paddingHorizontal: 18,
     paddingTop: 20,
+  },
+  busca: {
+  backgroundColor: "#FFFFFF",
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+  borderRadius: 10,
+  paddingHorizontal: 14,
+  paddingVertical: 12,
+  fontSize: 14,
+  color: "#111827",
+  marginBottom: 16,
   },
   cabecalho: {
     flexDirection: "row",
