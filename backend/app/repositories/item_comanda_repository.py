@@ -61,8 +61,7 @@ def adicionar_itens(
                 select(Lote)
                 .where(
                     Lote.produto_id == dados_item.produto_id,
-                    Lote.quantidade > 0,
-                    Lote.data_de_validade >= date.today()
+                    Lote.quantidade > 0
                 )
                 .order_by(
                     Lote.data_de_validade.asc(),
@@ -100,6 +99,7 @@ def adicionar_itens(
                 item = ItemComanda(
                     comanda_id=comanda_id,
                     produto_id=produto.id,
+                    nome_produto=produto.nome,
                     lote_id=lote.id,
                     usuario_id=usuario_id,
                     quantidade=quantidade_utilizada,
@@ -174,6 +174,9 @@ def deletar_item(
 
         if item is None:
             raise ValueError("Item não encontrado nesta comanda")
+        
+        if item.lote_id == None:
+            return
 
         # Busca e bloqueia o lote associado ao item
         lote = db.scalar(

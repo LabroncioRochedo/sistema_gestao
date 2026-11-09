@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.user_model import Usuario
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
 from app.models.product_model import Produto
@@ -50,8 +51,14 @@ def vender_comanda(
             Decimal("0.00")
         )
 
+        usuario = db.scalar(
+            select(Usuario)
+            .where(Usuario.id == usuario_id)
+        )
+
         venda = Venda(
-            usuario_id=usuario_id,
+            nome_usuario=usuario.nome,
+            nome_venda=comanda.nome,
             valor_total=valor_total,
             forma_pagamento=forma_pagamento,
             data_venda=datetime.now(timezone.utc)
@@ -64,7 +71,8 @@ def vender_comanda(
             item_venda = ItemVenda(
                 venda_id=venda.id,
                 produto_id=item.produto_id,
-                usuario_id=item.usuario_id,
+                nome_usuario=usuario.nome,
+                nome_produto=item.nome_produto,
                 quantidade=item.quantidade,
                 preco_unitario=item.preco_unitario
             )
@@ -97,9 +105,15 @@ def vender_produtos_direto(
     try:
         valor_total = Decimal("0.00")
 
+        usuario = db.scalar(
+            select(Usuario)
+            .where(Usuario.id == usuario_id)
+        )
+
         # Cria uma única venda
         venda = Venda(
-            usuario_id=usuario_id,
+            nome_usuario=usuario,
+            nome_venda="caixa",
             valor_total=valor_total,
             forma_pagamento=forma_pagamento,
             data_venda=datetime.now(timezone.utc),
@@ -167,7 +181,8 @@ def vender_produtos_direto(
             item = ItemVenda(
                 venda_id=venda.id,
                 produto_id=produto.id,
-                usuario_id=usuario_id,
+                nome_usuario=usuario.nome,
+                nome_produto=produto.nome,
                 quantidade=dados_item.quantidade,
                 preco_unitario=preco_unitario,
             )
@@ -193,9 +208,6 @@ def vender_produtos_direto(
 def listar_vendas(db):
     stmt = (
         select(Venda)
-        .options(
-            selectinload(Venda.usuario)
-        )
         .order_by(Venda.data_venda.desc())
     )
 
@@ -214,10 +226,6 @@ def listar_itens_venda(db, venda_id: int):
     stmt = (
         select(ItemVenda)
         .where(ItemVenda.venda_id == venda_id)
-        .options(
-            selectinload(ItemVenda.produto),
-            selectinload(ItemVenda.usuario)
-        )
         .order_by(ItemVenda.id)
     )
 

@@ -15,13 +15,18 @@ class Venda(Base):
         autoincrement=True
     )
 
-    usuario_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.id"),
+    valor_total: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
         nullable=False
     )
 
-    valor_total: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2),
+    nome_usuario: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False
+    )
+
+    nome_venda: Mapped[str] = mapped_column(
+        String(100),
         nullable=False
     )
 
@@ -35,8 +40,6 @@ class Venda(Base):
         nullable=False,
         default=datetime.utcnow
     )
-
-    usuario: Mapped["Usuario"] = relationship()
 
     itens: Mapped[list["ItemVenda"]] = relationship(
         back_populates="venda",

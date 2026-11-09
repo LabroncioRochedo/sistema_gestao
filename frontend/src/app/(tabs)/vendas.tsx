@@ -15,22 +15,21 @@ import api from "../../services/api";
 
 type Venda = {
   id: number;
-  usuario_id: number;
   valor_total: number | string;
   forma_pagamento: string;
   data_venda: string;
-  usuario_nome: string;
+  nome_usuario: string;
+  nome_venda: string;
 };
 
 type ItemVenda = {
   id: number;
   venda_id: number;
   produto_id: number;
-  usuario_id: number;
   quantidade: number;
   preco_unitario: number | string;
-  produto_nome: string;
-  usuario_nome: string;
+  nome_produto: string;
+  nome_usuario: string;
 };
 
 export default function Vendas() {
@@ -173,12 +172,12 @@ export default function Vendas() {
           onPress={() => abrirVenda(item.id)}
         >
           <View style={styles.info}>
-            <Text style={styles.vendaTitulo}>Venda #{item.id}</Text>
+            <Text style={styles.vendaTitulo}>{item.nome_venda}</Text>
             <Text style={styles.data}>
               {dataFormatada(item.data_venda)}
             </Text>
             <Text style={styles.detalhe}>
-              Funcionário: {item.usuario_nome}
+              Funcionário: {item.nome_usuario}
             </Text>
             <Text style={styles.detalhe}>
               Pagamento: {pagamentoFormatado(item.forma_pagamento)}
@@ -210,7 +209,7 @@ export default function Vendas() {
                   <View key={produto.id} style={styles.itemLinha}>
                     <View style={styles.itemInfo}>
                       <Text style={styles.produtoNome}>
-                        {produto.produto_nome}
+                        {produto.nome_produto}
                       </Text>
                       <Text style={styles.quantidade}>
                         {produto.quantidade} ×{" "}

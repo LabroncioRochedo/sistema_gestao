@@ -10,7 +10,6 @@ class VendaCreate(BaseModel):
 class ItemVendaResponse(BaseModel):
     id: int
     produto_id: int
-    usuario_id: int
     quantidade: int
     preco_unitario: Decimal
 
@@ -19,7 +18,6 @@ class ItemVendaResponse(BaseModel):
 
 class VendaResponse_vender(BaseModel):
     id: int
-    usuario_id: int
     valor_total: Decimal
     forma_pagamento: str
     data_venda: datetime
@@ -40,14 +38,11 @@ class VendaDiretaListaCreate(BaseModel):
 
 class VendaResponse_listar(BaseModel):
     id: int
-    usuario_id: int
     valor_total: Decimal
     forma_pagamento: str
     data_venda: datetime
-
-    usuario_nome: str = Field(
-        validation_alias=AliasPath("usuario", "nome")
-    )
+    nome_usuario: str
+    nome_venda: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,17 +50,10 @@ class VendaResponse_listar(BaseModel):
 class ItemVendaResponse_listar(BaseModel):
     id: int
     venda_id: int
-    produto_id: int
-    usuario_id: int
+    produto_id: int | None
     quantidade: int
     preco_unitario: Decimal
-
-    produto_nome: str = Field(
-        validation_alias=AliasPath("produto", "nome")
-    )
-
-    usuario_nome: str = Field(
-        validation_alias=AliasPath("usuario", "nome")
-    )
+    nome_produto: str
+    nome_usuario: str
 
     model_config = ConfigDict(from_attributes=True)

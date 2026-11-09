@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Numeric
+from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -19,13 +19,13 @@ class ItemVenda(Base):
         nullable=False
     )
 
-    produto_id: Mapped[int] = mapped_column(
+    produto_id: Mapped[int | None] = mapped_column(
         ForeignKey("produtos.id"),
-        nullable=False
+        nullable=True
     )
 
-    usuario_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.id"),
+    nome_usuario: Mapped[str] = mapped_column(
+        String(250),
         nullable=False
     )
 
@@ -38,10 +38,13 @@ class ItemVenda(Base):
         nullable=False
     )
 
+    nome_produto: Mapped[str] = mapped_column(
+        String(250),
+        nullable=False
+    )
+
     venda: Mapped["Venda"] = relationship(
         back_populates="itens"
     )
 
     produto: Mapped["Produto"] = relationship()
-
-    usuario: Mapped["Usuario"] = relationship()

@@ -25,14 +25,14 @@ class ItemComanda(Base):
         nullable=False
     )
 
-    produto_id: Mapped[int] = mapped_column(
+    produto_id: Mapped[int | None] = mapped_column(
         ForeignKey("produtos.id"),
-        nullable=False
+        nullable=True
     )
 
-    lote_id: Mapped[int] = mapped_column(
+    lote_id: Mapped[int | None] = mapped_column(
         ForeignKey("lotes.id"),
-        nullable=False
+        nullable=True
     )
 
     usuario_id: Mapped[int] = mapped_column(
@@ -43,6 +43,11 @@ class ItemComanda(Base):
     comentario: Mapped[str | None] = mapped_column(
         String(250),
         nullable=True
+    )
+
+    nome_produto: Mapped[str] = mapped_column(
+        String(250),
+        nullable=False
     )
 
     quantidade: Mapped[int] = mapped_column(
