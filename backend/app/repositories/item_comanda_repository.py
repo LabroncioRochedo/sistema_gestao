@@ -5,6 +5,7 @@ from datetime import date
 from app.models.comanda_model import Comanda
 from app.models.product_model import Produto
 from app.models.item_comanda_model import ItemComanda
+from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.lote_model import Lote
 
 
@@ -43,8 +44,17 @@ def adicionar_item_outro(
                     quantidade=dados.quantidade,
                     preco_unitario=dados.preco_unitario,
                 )
+        historico = HistoricoItemComanda(
+            comanda_id=comanda_id,
+            nome_produto=dados.nome_produto,
+            usuario_id=usuario_id,
+            quantidade=dados.quantidade,
+            preco_unitario=dados.preco_unitario,
+            operacao="entrada"
+        )
 
         db.add(item)
+        db.add(historico)
         db.commit()
         db.refresh(item)
 
@@ -144,7 +154,17 @@ def adicionar_itens(
                     comentario=dados_item.comentario
                 )
 
+                historico = HistoricoItemComanda(
+                    comanda_id=comanda_id,
+                    nome_produto=produto.nome,
+                    usuario_id=usuario_id,
+                    quantidade=quantidade_utilizada,
+                    preco_unitario=produto.preco,
+                    operacao="entrada"
+                )
+
                 db.add(item)
+                db.add(historico)
                 itens_criados.append(item)
 
         # Persiste todos os itens de uma única vez
@@ -210,27 +230,34 @@ def deletar_item(
 
         if item is None:
             raise ValueError("Item não encontrado nesta comanda")
-        
-        if item.lote_id == None:
-            db.delete(item)
 
-            db.commit()
-            return
-
-        # Busca e bloqueia o lote associado ao item
-        lote = db.scalar(
-            select(Lote)
-            .where(Lote.id == item.lote_id)
-            .with_for_update()
+        # Registra o histórico antes de excluir o item
+        historico = HistoricoItemComanda(
+            comanda_id=item.comanda_id,
+            nome_produto=item.nome_produto,
+            usuario_id=item.usuario_id,
+            quantidade=item.quantidade,
+            preco_unitario=item.preco_unitario,
+            operacao="saida"
         )
 
-        if lote is None:
-            raise ValueError("Lote associado ao item não encontrado")
+        # Se o item estiver associado a um lote, devolve o estoque
+        if item.lote_id is not None:
+            lote = db.scalar(
+                select(Lote)
+                .where(Lote.id == item.lote_id)
+                .with_for_update()
+            )
 
-        # Devolve a quantidade ao lote original
-        lote.quantidade += item.quantidade
+            if lote is None:
+                raise ValueError(
+                    "Lote associado ao item não encontrado"
+                )
 
-        # Remove somente a linha informada
+            lote.quantidade += item.quantidade
+
+        # Registra o histórico e remove o item
+        db.add(historico)
         db.delete(item)
 
         db.commit()

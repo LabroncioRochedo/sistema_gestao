@@ -5,6 +5,7 @@ from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
 from app.models.product_model import Produto
 from app.models.lote_model import Lote
+from app.models.historico_itens_model import HistoricoItemComanda
 
 
 def create(db: Session, comanda: Comanda) -> Comanda:
@@ -103,3 +104,17 @@ def deletar_comanda(db, comanda_id: int):
     except Exception:
         db.rollback()
         raise
+
+def pegar_historico(
+    db,
+    comanda_id: int
+    ):
+
+    historico = db.scalars(
+        select(HistoricoItemComanda)
+        .where(HistoricoItemComanda.comanda_id == comanda_id)
+        .order_by(HistoricoItemComanda.data_movimentacao.desc())
+        .options(selectinload(HistoricoItemComanda.usuario))
+    ).all()
+
+    return historico

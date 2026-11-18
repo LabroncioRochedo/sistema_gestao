@@ -22,7 +22,7 @@ router = APIRouter(
     "/{comanda_id}/item/outros",
     status_code=201
 )
-def adicionar_itens(
+def adicionar_item_outro(
     comanda_id: int,
     dados: ItemOutros,
     db: Session = Depends(get_db),

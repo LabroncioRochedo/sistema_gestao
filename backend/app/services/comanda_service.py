@@ -28,3 +28,9 @@ def deletar_comanda(db, comanda_id: int):
         db=db,
         comanda_id=comanda_id
     )
+
+def pegar_historico(db,comanda_id:int):
+    return comanda_repository.pegar_historico(
+        db=db,
+        comanda_id=comanda_id
+    )

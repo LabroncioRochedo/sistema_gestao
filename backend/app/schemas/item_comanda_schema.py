@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, AliasPath
 from decimal import Decimal
+from datetime import datetime
 
 
 class ItemComandaCreate(BaseModel):
@@ -43,6 +44,7 @@ class ItemComandaResponse_listar(BaseModel):
     preco_unitario: Decimal
     comentario: str | None
     nome_produto: str
+    data: datetime
 
     usuario_nome: str = Field(
         validation_alias=AliasPath("usuario", "nome")

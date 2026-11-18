@@ -7,7 +7,8 @@ from app.models.user_model import Usuario
 from app.schemas.comanda_schema import (
     ComandaCreate,
     ComandaResponse_criar,
-    ComandaResponse_listar
+    ComandaResponse_listar,
+    ComandaResponse_historico
 )
 from app.services import comanda_service
 
@@ -83,3 +84,14 @@ def deletar_comanda(
             status_code=400,
             detail=mensagem
         )
+
+@router.get(
+    "/{comanda_id}/historico",
+    response_model=list[ComandaResponse_historico]
+)
+def pegar_historico(
+    comanda_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)
+):
+    return comanda_service.pegar_historico(db=db,comanda_id=comanda_id)

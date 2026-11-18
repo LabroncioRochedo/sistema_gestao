@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
-
-from sqlalchemy import ForeignKey, Numeric, String
+from datetime import datetime, timezone
+from sqlalchemy import ForeignKey, Numeric, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -61,6 +61,12 @@ class ItemComanda(Base):
 
     comanda: Mapped["Comanda"] = relationship(
         back_populates="itens"
+    )
+
+    data: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
     )
 
     lote: Mapped["Lote"] = relationship()

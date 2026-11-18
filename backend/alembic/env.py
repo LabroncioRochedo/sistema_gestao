@@ -6,6 +6,7 @@ from app.models.item_comanda_model import ItemComanda
 from app.models.item_venda_model import ItemVenda
 from app.models.lote_model import Lote
 from app.models.venda_model import Venda
+from app.models.historico_itens_model import HistoricoItemComanda
 from app.database.connection import engine
 
 from alembic import context

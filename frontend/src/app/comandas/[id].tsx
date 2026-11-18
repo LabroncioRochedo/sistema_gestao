@@ -33,6 +33,7 @@ type ItemComanda = {
   preco_unitario?: number;
   preco?: number;
   usuario_nome?: string;
+  data: string;
 };
 
 type Comanda = {
@@ -41,11 +42,20 @@ type Comanda = {
   status: string;
   usuario_nome?: string;
 };
-
+type HistoricoComanda = {
+  quantidade: number;
+  preco_unitario: number | string;
+  nome_produto: string;
+  operacao: string;
+  data_movimentacao: string;
+  usuario_nome: string;
+};
 export default function DetalhesComanda() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const [historicoMinimizado, setHistoricoMinimizado] = useState(false);
+  const [historico, setHistorico] = useState<HistoricoComanda[]>([]);
   const [mostrarOutros, setMostrarOutros] = useState(false);
   const [nomeProdutoOutro, setNomeProdutoOutro] = useState("");
   const [precoUnitarioOutro, setPrecoUnitarioOutro] = useState("");
@@ -79,6 +89,25 @@ export default function DetalhesComanda() {
       setComanda(resComanda.data);
       setItens(resItens.data);
       setProdutos(resProdutos.data);
+      try {
+        const resHistorico = await api.get<HistoricoComanda[]>(
+          `/comandas/${id}/historico`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setHistorico(resHistorico.data);
+      } catch (erro: any) {
+        console.log(
+          "Erro ao carregar histórico:",
+          erro?.response?.data ?? erro
+        );
+
+        setHistorico([]);
+      }
     } catch (erro: any) {
       Alert.alert(
         "Erro",
@@ -101,7 +130,44 @@ export default function DetalhesComanda() {
       return soma + preco * item.quantidade;
     }, 0);
   }, [itens]);
+  const itensTotais = useMemo(() => {
+  const agrupados = new Map<
+    string,
+    {
+      nome: string;
+      quantidade: number;
+      valorTotal: number;
+    }
+  >();
 
+  itens.forEach((item) => {
+    const nome = (
+      item.produto_nome ??
+      item.nome_produto ??
+      `Produto #${item.produto_id ?? "avulso"}`
+    ).trim();
+
+    const chave = nome.toLowerCase();
+    const preco = Number(
+      item.preco_unitario ?? item.preco ?? 0
+    );
+
+    const existente = agrupados.get(chave);
+
+    if (existente) {
+      existente.quantidade += item.quantidade;
+      existente.valorTotal += preco * item.quantidade;
+    } else {
+      agrupados.set(chave, {
+        nome,
+        quantidade: item.quantidade,
+        valorTotal: preco * item.quantidade,
+      });
+    }
+  });
+
+  return Array.from(agrupados.values());
+  }, [itens]);
   const produtosFiltrados = produtos.filter((produto) =>
     produto.nome.toLowerCase().includes(busca.toLowerCase())
   );
@@ -340,7 +406,15 @@ export default function DetalhesComanda() {
       currency: "BRL",
     });
   }
+  function formatarData(data: string) {
+    const dataFormatada = new Date(data);
 
+    if (Number.isNaN(dataFormatada.getTime())) {
+      return data;
+    }
+
+    return dataFormatada.toLocaleString("pt-BR");
+  } 
   function nomeDoItem(item: ItemComanda) {
     return item.produto_nome ?? item.nome_produto ?? `Produto #${item.produto_id}`;
   }
@@ -636,7 +710,7 @@ export default function DetalhesComanda() {
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemNome}>{nomeDoItem(item)}</Text>
                     <Text style={styles.itemDetalhe}>
-                      {item.quantidade} × {formatarMoeda(preco)} {item.usuario_nome}
+                      {item.quantidade} × {formatarMoeda(preco)} {item.usuario_nome} {formatarData(item.data)}
                     </Text>
                   </View>
 
@@ -660,7 +734,116 @@ export default function DetalhesComanda() {
             })}
           </View>
         )}
+        <View style={styles.tabelaCard}>
+          <Text style={styles.tabelaTitulo}>Itens totais</Text>
 
+          <View style={styles.tabelaCabecalho}>
+            <Text style={[styles.colunaProduto, styles.tabelaTextoCabecalho]}>
+              Produto
+            </Text>
+
+            <Text style={[styles.colunaQuantidade, styles.tabelaTextoCabecalho]}>
+              Qtd.
+            </Text>
+
+            <Text style={[styles.colunaValor, styles.tabelaTextoCabecalho]}>
+              Total
+            </Text>
+          </View>
+
+          {itensTotais.length === 0 ? (
+            <Text style={styles.tabelaVazia}>
+              Nenhum item lançado.
+            </Text>
+          ) : (
+            itensTotais.map((item, index) => (
+              <View
+                key={`${item.nome}-${index}`}
+                style={styles.tabelaLinha}
+              >
+                <Text style={styles.colunaProduto}>
+                  {item.nome}
+                </Text>
+
+                <Text style={styles.colunaQuantidade}>
+                  {item.quantidade}
+                </Text>
+
+                <Text style={styles.colunaValor}>
+                  {formatarMoeda(item.valorTotal)}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+        <View style={styles.tabelaCard}>
+          <View style={styles.historicoTituloContainer}>
+            <Text style={styles.tabelaTitulo}>
+              Histórico de movimentações
+            </Text>
+
+            <TouchableOpacity
+              style={styles.botaoMinimizar}
+              onPress={() =>
+                setHistoricoMinimizado((anterior) => !anterior)
+              }
+            >
+              <Text style={styles.textoBotaoMinimizar}>
+                {historicoMinimizado ? "Expandir +" : "Minimizar −"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!historicoMinimizado && (
+            <>
+              {historico.length === 0 ? (
+                <Text style={styles.tabelaVazia}>
+                  Nenhuma movimentação registrada.
+                </Text>
+              ) : (
+                [...historico]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.data_movimentacao).getTime() -
+                      new Date(a.data_movimentacao).getTime()
+                  )
+                  .map((registro, index) => (
+                    <View
+                      key={`${registro.data_movimentacao}-${index}`}
+                      style={styles.historicoItem}
+                    >
+                      <View style={styles.historicoTopo}>
+                        <Text style={styles.historicoNome}>
+                          {registro.nome_produto}
+                        </Text>
+
+                        <Text style={styles.historicoOperacao}>
+                          {registro.operacao}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.historicoDetalhe}>
+                        Quantidade: {registro.quantidade}
+                      </Text>
+
+                      <Text style={styles.historicoDetalhe}>
+                        Preço unitário:{" "}
+                        {formatarMoeda(Number(registro.preco_unitario))}
+                      </Text>
+
+                      <Text style={styles.historicoDetalhe}>
+                        Responsável: {registro.usuario_nome}
+                      </Text>
+
+                      <Text style={styles.historicoData}>
+                        {formatarData(registro.data_movimentacao)}
+                      </Text>
+                    </View>
+                  ))
+              )}
+            </>
+          )}
+        </View>
         {aberta ? (
           <>
             <View style={styles.pagamentoCard}>
@@ -734,6 +917,132 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginTop: 22,
   },
+  historicoTituloContainer: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+botaoMinimizar: {
+  paddingVertical: 6,
+  paddingHorizontal: 10,
+  borderRadius: 6,
+  backgroundColor: "#E5E7EB",
+},
+
+textoBotaoMinimizar: {
+  color: "#374151",
+  fontSize: 12,
+  fontWeight: "600",
+},
+  tabelaCard: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 14,
+  padding: 15,
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+  marginTop: 18,
+},
+
+tabelaTitulo: {
+  fontSize: 17,
+  fontWeight: "bold",
+  color: "#111827",
+  marginBottom: 14,
+},
+
+tabelaCabecalho: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 11,
+  borderBottomWidth: 1,
+  borderBottomColor: "#E5E7EB",
+  backgroundColor: "#F8FAFC",
+},
+
+tabelaTextoCabecalho: {
+  fontWeight: "bold",
+  color: "#6B7280",
+  fontSize: 12,
+},
+
+tabelaLinha: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 13,
+  borderBottomWidth: 1,
+  borderBottomColor: "#F1F5F9",
+},
+
+colunaProduto: {
+  flex: 1,
+  color: "#111827",
+  fontSize: 13,
+  fontWeight: "600",
+},
+
+colunaQuantidade: {
+  width: 48,
+  textAlign: "center",
+  color: "#111827",
+  fontSize: 13,
+  fontWeight: "600",
+},
+
+colunaValor: {
+  width: 105,
+  textAlign: "right",
+  color: "#111827",
+  fontSize: 12,
+  fontWeight: "600",
+},
+
+tabelaVazia: {
+  color: "#6B7280",
+  fontSize: 13,
+  textAlign: "center",
+  paddingVertical: 18,
+},
+
+historicoItem: {
+  paddingVertical: 13,
+  borderBottomWidth: 1,
+  borderBottomColor: "#F1F5F9",
+},
+
+historicoTopo: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 7,
+},
+
+historicoNome: {
+  flex: 1,
+  color: "#111827",
+  fontSize: 14,
+  fontWeight: "bold",
+},
+
+historicoOperacao: {
+  color: "#2563EB",
+  fontSize: 12,
+  fontWeight: "bold",
+  marginLeft: 8,
+},
+
+historicoDetalhe: {
+  color: "#6B7280",
+  fontSize: 12,
+  marginTop: 4,
+},
+
+historicoData: {
+  color: "#9CA3AF",
+  fontSize: 11,
+  marginTop: 7,
+},
   botoesAdicionar: {
   flexDirection: "row",
   alignItems: "center",
