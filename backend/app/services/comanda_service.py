@@ -34,3 +34,12 @@ def pegar_historico(db,comanda_id:int):
         db=db,
         comanda_id=comanda_id
     )
+
+def listar_pagamentos_comanda(
+    db: Session,
+    comanda_id: int
+):
+    return comanda_repository.listar_pagamentos_comanda(
+        db=db,
+        comanda_id=comanda_id
+    )

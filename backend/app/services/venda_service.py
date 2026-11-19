@@ -1,5 +1,5 @@
 from app.repositories import venda_repository
-from app.schemas.venda_schema import VendaDiretaListaCreate
+from app.schemas.venda_schema import VendaDiretaListaCreate, VendaParcialCreat
 
 def vender_comanda(
     db,
@@ -12,6 +12,20 @@ def vender_comanda(
         comanda_id=comanda_id,
         usuario_id=usuario_id,
         forma_pagamento=forma_pagamento
+    )
+
+def vender_comanda_parcial(
+    db,
+    comanda_id: int,
+    usuario_id: int,
+    dados: VendaParcialCreat
+):
+    return venda_repository.registrar_pagamento_comanda(
+        db=db,
+        comanda_id=comanda_id,
+        usuario_id=usuario_id,
+        forma_pagamento=dados.forma_pagamento,
+        valor=dados.valor
     )
 
 def vender_produtos_direto(
@@ -40,4 +54,13 @@ def listar_itens_venda(db, venda_id: int):
 
     return venda_repository.listar_itens_venda(
         db, venda_id
+    )
+
+def listar_pagamentos_comanda_vendida(
+    db: Session,
+    venda_id: int
+):
+    return venda_repository.listar_pagamentos_comanda_vendida(
+        db=db,
+        venda_id=venda_id
     )

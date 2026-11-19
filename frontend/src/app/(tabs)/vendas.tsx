@@ -16,7 +16,6 @@ import api from "../../services/api";
 type Venda = {
   id: number;
   valor_total: number | string;
-  forma_pagamento: string;
   data_venda: string;
   nome_usuario: string;
   nome_venda: string;
@@ -178,9 +177,6 @@ export default function Vendas() {
             </Text>
             <Text style={styles.detalhe}>
               Funcionário: {item.nome_usuario}
-            </Text>
-            <Text style={styles.detalhe}>
-              Pagamento: {pagamentoFormatado(item.forma_pagamento)}
             </Text>
           </View>
 

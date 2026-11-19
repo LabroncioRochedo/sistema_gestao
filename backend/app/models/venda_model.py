@@ -30,11 +30,6 @@ class Venda(Base):
         nullable=False
     )
 
-    forma_pagamento: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False
-    )
-
     data_venda: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
@@ -44,4 +39,8 @@ class Venda(Base):
     itens: Mapped[list["ItemVenda"]] = relationship(
         back_populates="venda",
         cascade="all, delete-orphan"
+    )
+
+    pagamentos: Mapped[list["PagamentoComanda"]] = relationship(
+    back_populates="venda"
     )

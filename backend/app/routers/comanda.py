@@ -8,7 +8,8 @@ from app.schemas.comanda_schema import (
     ComandaCreate,
     ComandaResponse_criar,
     ComandaResponse_listar,
-    ComandaResponse_historico
+    ComandaResponse_historico,
+    ComandaPagamentosResponse_listar
 )
 from app.services import comanda_service
 
@@ -95,3 +96,17 @@ def pegar_historico(
     usuario: Usuario = Depends(get_current_user)
 ):
     return comanda_service.pegar_historico(db=db,comanda_id=comanda_id)
+
+@router.get(
+    "/{comanda_id}/pagamentos",
+    response_model=list[ComandaPagamentosResponse_listar]
+)
+def listar_pagamentos_comanda(
+    comanda_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    return comanda_service.listar_pagamentos_comanda(
+        db=db,
+        comanda_id=comanda_id
+    )

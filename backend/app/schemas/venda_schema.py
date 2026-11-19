@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, AliasPath
+from pydantic import BaseModel, ConfigDict, AliasPath,Field
 
 
 class VendaCreate(BaseModel):
@@ -19,13 +19,10 @@ class ItemVendaResponse(BaseModel):
 class VendaResponse_vender(BaseModel):
     id: int
     valor_total: Decimal
-    forma_pagamento: str
     data_venda: datetime
     itens: list[ItemVendaResponse]
 
     model_config = ConfigDict(from_attributes=True)
-
-from pydantic import BaseModel, Field
 
 
 class VendaDiretaCreate(BaseModel):
@@ -34,12 +31,11 @@ class VendaDiretaCreate(BaseModel):
 
 class VendaDiretaListaCreate(BaseModel):
     itens: list[VendaDiretaCreate] = Field(min_length=1)
-    forma_pagamento: str
+
 
 class VendaResponse_listar(BaseModel):
     id: int
     valor_total: Decimal
-    forma_pagamento: str
     data_venda: datetime
     nome_usuario: str
     nome_venda: str
@@ -57,3 +53,14 @@ class ItemVendaResponse_listar(BaseModel):
     nome_usuario: str
 
     model_config = ConfigDict(from_attributes=True)
+
+class VendaParcialCreat(BaseModel):
+    valor: Decimal
+    forma_pagamento: str
+
+class VendaParcialResponse_listar(BaseModel):
+    id: int
+    valor: Decimal
+    forma_pagamento: str
+    data_pagamento: datetime
+    nome_usuario: str

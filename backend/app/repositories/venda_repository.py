@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.user_model import Usuario
@@ -11,6 +11,8 @@ from app.models.product_model import Produto
 from app.models.venda_model import Venda
 from app.models.item_venda_model import ItemVenda
 from app.models.lote_model import Lote
+from app.models.pagamento_comanda import PagamentoComanda
+
 
 
 def vender_comanda(
@@ -20,6 +22,7 @@ def vender_comanda(
     forma_pagamento: str
 ):
     try:
+        # Busca e bloqueia a comanda
         comanda = db.execute(
             select(Comanda)
             .where(Comanda.id == comanda_id)
@@ -32,6 +35,7 @@ def vender_comanda(
         if comanda.status != "aberta":
             raise ValueError("Comanda não está aberta")
 
+        # Busca e bloqueia os itens
         itens = db.execute(
             select(ItemComanda)
             .where(ItemComanda.comanda_id == comanda_id)
@@ -42,31 +46,57 @@ def vender_comanda(
         if not itens:
             raise ValueError("Não é possível vender uma comanda vazia")
 
+        # Calcula o valor total da comanda
         valor_total = sum(
             (
-                Decimal(str(item.preco_unitario))
-                * item.quantidade
+                Decimal(str(item.preco_unitario)) * item.quantidade
                 for item in itens
             ),
             Decimal("0.00")
         )
 
-        usuario = db.scalar(
-            select(Usuario)
-            .where(Usuario.id == usuario_id)
+        # Busca e bloqueia os pagamentos anteriores
+        pagamentos = db.execute(
+            select(PagamentoComanda)
+            .where(PagamentoComanda.comanda_id == comanda_id)
+            .with_for_update()
+        ).scalars().all()
+
+        valor_pago = sum(
+            (
+                Decimal(str(pagamento.valor))
+                for pagamento in pagamentos
+            ),
+            Decimal("0.00")
         )
 
+        # Calcula o saldo restante
+        saldo_restante = valor_total - valor_pago
+
+        if saldo_restante < 0:
+            raise ValueError(
+                "O total pago é superior ao valor da comanda. "
+                "Verifique os pagamentos antes de fechar."
+            )
+
+        # Busca o usuário responsável pela venda
+        usuario = db.get(Usuario, usuario_id)
+
+        if usuario is None:
+            raise ValueError("Usuário não encontrado")
+
+        # Cria a venda
         venda = Venda(
             nome_usuario=usuario.nome,
             nome_venda=comanda.nome,
             valor_total=valor_total,
-            forma_pagamento=forma_pagamento,
             data_venda=datetime.now(timezone.utc)
         )
 
         db.add(venda)
         db.flush()
 
+        # Registra os itens da venda
         for item in itens:
             item_venda = ItemVenda(
                 venda_id=venda.id,
@@ -76,15 +106,36 @@ def vender_comanda(
                 quantidade=item.quantidade,
                 preco_unitario=item.preco_unitario
             )
+
             db.add(item_venda)
 
-        # Garante que os registros históricos foram inseridos
+        # Registra o pagamento restante, se houver
+        if saldo_restante > Decimal("0.00"):
+            pagamento_final = PagamentoComanda(
+                comanda_id=None,
+                venda_id=venda.id,
+                nome_usuario=usuario.nome,
+                valor=saldo_restante,
+                forma_pagamento=forma_pagamento
+            )
+
+            db.add(pagamento_final)
+
+        # Vincula os pagamentos parciais à venda
+        # e desvincula-os da comanda que será excluída
+        for pagamento in pagamentos:
+            pagamento.venda_id = venda.id
+            pagamento.comanda_id = None
+
+        # Garante que os pagamentos e itens da venda
+        # sejam persistidos antes da exclusão da comanda
         db.flush()
 
-        # Exclui os itens temporários e a comanda
+        # Exclui os itens temporários
         for item in itens:
             db.delete(item)
 
+        # Exclui a comanda
         db.delete(comanda)
 
         db.commit()
@@ -95,6 +146,7 @@ def vender_comanda(
     except Exception:
         db.rollback()
         raise
+
 
 def vender_produtos_direto(
     db: Session,
@@ -112,10 +164,9 @@ def vender_produtos_direto(
 
         # Cria uma única venda
         venda = Venda(
-            nome_usuario=usuario,
+            nome_usuario=usuario.nome,
             nome_venda="caixa",
             valor_total=valor_total,
-            forma_pagamento=forma_pagamento,
             data_venda=datetime.now(timezone.utc),
         )
 
@@ -230,3 +281,94 @@ def listar_itens_venda(db, venda_id: int):
     )
 
     return db.scalars(stmt).all()
+
+def listar_pagamentos_comanda_vendida(
+    db: Session,
+    venda_id: int
+):
+    return db.scalars(
+        select(PagamentoComanda)
+        .where(PagamentoComanda.venda_id == venda_id)
+        .order_by(PagamentoComanda.data_pagamento.desc())
+    ).all()
+
+def registrar_pagamento_comanda(
+    db: Session,
+    comanda_id: int,
+    usuario_id: int,
+    valor: Decimal,
+    forma_pagamento: str
+):
+    try:
+        # Bloqueia a comanda para evitar pagamentos simultâneos
+        comanda = db.scalar(
+            select(Comanda)
+            .where(Comanda.id == comanda_id)
+            .with_for_update()
+        )
+
+        if comanda is None:
+            raise ValueError("Comanda não encontrada")
+
+        if comanda.status != "aberta":
+            raise ValueError("A comanda não está aberta")
+
+        valor = Decimal(str(valor))
+
+        if valor <= Decimal("0.00"):
+            raise ValueError("O valor do pagamento deve ser maior que zero")
+
+        # Calcula o valor total dos itens da comanda
+        itens = db.scalars(
+            select(ItemComanda)
+            .where(ItemComanda.comanda_id == comanda_id)
+        ).all()
+
+        valor_total = sum(
+            (
+                Decimal(str(item.preco_unitario)) * item.quantidade
+                for item in itens
+            ),
+            Decimal("0.00")
+        )
+
+        # Calcula quanto já foi recebido
+        valor_pago = db.scalar(
+            select(func.coalesce(func.sum(PagamentoComanda.valor), 0))
+            .where(PagamentoComanda.comanda_id == comanda_id)
+        )
+
+        valor_pago = Decimal(str(valor_pago))
+
+        saldo = valor_total - valor_pago
+
+        if valor > saldo:
+            raise ValueError(
+                f"Pagamento superior ao saldo restante de R$ {saldo:.2f}"
+            )
+
+        # Confirma que o usuário existe
+        usuario = db.scalar(
+            select(Usuario)
+            .where(Usuario.id == usuario_id)
+        )
+
+        if usuario is None:
+            raise ValueError("Usuário não encontrado")
+
+        pagamento = PagamentoComanda(
+            comanda_id=comanda_id,
+            nome_usuario=usuario.nome,
+            valor=valor,
+            forma_pagamento=forma_pagamento
+        )
+
+        db.add(pagamento)
+        db.commit()
+        db.refresh(pagamento)
+
+        return pagamento
+
+    except Exception:
+        db.rollback()
+        raise

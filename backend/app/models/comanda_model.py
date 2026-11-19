@@ -47,3 +47,7 @@ class Comanda(Base):
         back_populates="comanda",
         cascade="all, delete-orphan"
     )
+
+    pagamentos: Mapped[list["PagamentoComanda"]] = relationship(
+    back_populates="comanda"
+    )

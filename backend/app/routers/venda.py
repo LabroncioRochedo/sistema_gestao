@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user_model import Usuario
-from app.schemas.venda_schema import VendaCreate, VendaResponse_vender,VendaDiretaListaCreate, VendaDiretaCreate, ItemVendaResponse_listar, VendaResponse_listar
+from app.schemas.venda_schema import VendaCreate,VendaParcialResponse_listar,VendaParcialCreat, VendaResponse_vender,VendaDiretaListaCreate, VendaDiretaCreate, ItemVendaResponse_listar, VendaResponse_listar
 from app.services import venda_service
 
 router = APIRouter(
@@ -29,6 +29,32 @@ def vender_comanda(
             comanda_id=comanda_id,
             usuario_id=usuario_atual.id,
             forma_pagamento=dados.forma_pagamento
+        )
+
+    except ValueError as erro:
+        mensagem = str(erro)
+
+        if mensagem == "Comanda não encontrada":
+            raise HTTPException(status_code=404, detail=mensagem)
+
+        raise HTTPException(status_code=400, detail=mensagem)
+
+@router.post(
+    "/comandas/{comanda_id}/vender/parcial",
+    status_code=201
+)
+def vender_comanda_parcial(
+    comanda_id: int,
+    dados: VendaParcialCreat,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user)
+):
+    try:
+        venda_service.vender_comanda_parcial(
+            db=db,
+            comanda_id=comanda_id,
+            usuario_id=usuario_atual.id,
+            dados=dados
         )
 
     except ValueError as erro:
@@ -92,6 +118,25 @@ def listar_itens_venda(
     try:
         return venda_service.listar_itens_venda(
             db, venda_id
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=404,
+            detail=str(erro)
+        )
+
+@router.get(
+    "/vendas/{venda_id}/pagamentos",
+    response_model=list[VendaParcialResponse_listar]
+)
+def listar_pagamentos_comanda_vendida(
+    venda_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(get_current_user)
+):
+    try:
+        return venda_service.listar_pagamentos_comanda_vendida(
+            db=db, venda_id=venda_id
         )
     except ValueError as erro:
         raise HTTPException(

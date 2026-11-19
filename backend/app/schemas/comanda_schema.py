@@ -39,3 +39,10 @@ class ComandaResponse_historico(BaseModel):
     )
 
     model_config = ConfigDict(from_attributes=True)
+
+class ComandaPagamentosResponse_listar(BaseModel):
+    id: int
+    valor: Decimal
+    forma_pagamento: str
+    data_pagamento: datetime
+    nome_usuario: str

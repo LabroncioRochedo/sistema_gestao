@@ -24,6 +24,14 @@ type Produto = {
   quantidade: number;
 };
 
+type PagamentoComanda = {
+  id: number;
+  valor: number | string;
+  forma_pagamento: string;
+  data_pagamento: string;
+  nome_usuario: string;
+};
+
 type ItemComanda = {
   id: number;
   produto_id: number;
@@ -53,7 +61,12 @@ type HistoricoComanda = {
 export default function DetalhesComanda() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [pagamentos, setPagamentos] = useState<PagamentoComanda[]>([]);
 
+  const [mostrarVendaParcial, setMostrarVendaParcial] = useState(false);
+  const [valorVendaParcial, setValorVendaParcial] = useState("");
+  const [formaPagamentoParcial, setFormaPagamentoParcial] = useState<string | null>(null);
+  const [vendendoParcial, setVendendoParcial] = useState(false);
   const [historicoMinimizado, setHistoricoMinimizado] = useState(false);
   const [historico, setHistorico] = useState<HistoricoComanda[]>([]);
   const [mostrarOutros, setMostrarOutros] = useState(false);
@@ -108,6 +121,25 @@ export default function DetalhesComanda() {
 
         setHistorico([]);
       }
+          try {
+      const resPagamentos = await api.get<PagamentoComanda[]>(
+        `/comandas/${id}/pagamentos`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setPagamentos(resPagamentos.data);
+    } catch (erro: any) {
+      console.log(
+        "Erro ao carregar pagamentos:",
+        erro?.response?.data ?? erro
+      );
+
+      setPagamentos([]);
+    }
     } catch (erro: any) {
       Alert.alert(
         "Erro",
@@ -130,6 +162,16 @@ export default function DetalhesComanda() {
       return soma + preco * item.quantidade;
     }, 0);
   }, [itens]);
+  const totalPagamentos = useMemo(() => {
+    return pagamentos.reduce((soma, pagamento) => {
+      return soma + Number(pagamento.valor);
+    }, 0);
+  }, [pagamentos]);
+
+  const valorRestante = Math.max(
+    0,
+    Number((total - totalPagamentos).toFixed(2))
+  );
   const itensTotais = useMemo(() => {
   const agrupados = new Map<
     string,
@@ -399,7 +441,95 @@ export default function DetalhesComanda() {
     setFechando(false);
   }
 }
+function confirmarVendaParcial() {
+  if (!formaPagamentoParcial) {
+    Alert.alert(
+      "Forma de pagamento",
+      "Selecione uma forma de pagamento."
+    );
+    return;
+  }
 
+  const valor = Number(valorVendaParcial.replace(",", "."));
+
+  if (!valorVendaParcial.trim() || !Number.isFinite(valor) || valor <= 0) {
+    Alert.alert(
+      "Valor inválido",
+      "Informe um valor maior que zero."
+    );
+    return;
+  }
+
+  if (valor >= valorRestante) {
+    Alert.alert(
+      "Valor inválido",
+      `O valor da venda parcial deve ser menor que o valor restante de ${formatarMoeda(valorRestante)}.`
+    );
+    return;
+  }
+
+  Alert.alert(
+    "Confirmar venda parcial",
+    `Deseja registrar um pagamento de ${formatarMoeda(valor)} por ${formaPagamentoParcial}?`,
+    [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Confirmar",
+        onPress: realizarVendaParcial,
+      },
+    ]
+  );
+}
+
+async function realizarVendaParcial() {
+  const valor = Number(valorVendaParcial.replace(",", "."));
+
+  setVendendoParcial(true);
+
+  try {
+    const token = await SecureStore.getItemAsync("token");
+
+    await api.post(
+      `/comandas/${id}/vender/parcial`,
+      {
+        valor: valor,
+        forma_pagamento: formaPagamentoParcial,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setMostrarVendaParcial(false);
+    setValorVendaParcial("");
+    setFormaPagamentoParcial(null);
+
+    await carregarDados();
+
+    Alert.alert(
+      "Sucesso",
+      "Pagamento parcial registrado com sucesso!"
+    );
+  } catch (erro: any) {
+    console.log(
+      "Erro na venda parcial:",
+      erro?.response?.data ?? erro
+    );
+
+    Alert.alert(
+      "Erro",
+      erro?.response?.data?.detail ??
+        "Não foi possível registrar a venda parcial."
+    );
+  } finally {
+    setVendendoParcial(false);
+  }
+}
   function formatarMoeda(valor: number) {
     return valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -476,7 +606,21 @@ export default function DetalhesComanda() {
 
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total da comanda</Text>
-          <Text style={styles.totalValor}>{formatarMoeda(total)}</Text>
+
+          <Text style={styles.totalValor}>
+            {formatarMoeda(total)}
+          </Text>
+
+          <View style={styles.totalSeparador} />
+
+          <Text style={styles.totalLabel}>
+            Valor restante
+          </Text>
+
+          <Text style={styles.totalRestante}>
+            {formatarMoeda(valorRestante)}
+          </Text>
+
           <Text style={styles.totalItens}>
             {itens.length} {itens.length === 1 ? "item" : "itens"} lançados
           </Text>
@@ -845,8 +989,126 @@ export default function DetalhesComanda() {
           )}
         </View>
         {aberta ? (
-          <>
-            <View style={styles.pagamentoCard}>
+  <>
+    <Modal
+      visible={mostrarVendaParcial}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={() => setMostrarVendaParcial(false)}
+    >
+      <KeyboardAvoidingView
+        style={styles.modalTela}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.modalConteudo}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableOpacity
+            onPress={() => setMostrarVendaParcial(false)}
+            disabled={vendendoParcial}
+          >
+            <Text style={styles.voltar}>‹ Voltar para comanda</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.modalTitulo}>
+            Vender parcialmente
+          </Text>
+
+          <Text style={styles.modalSubtitulo}>
+            Registre um pagamento sem encerrar a comanda.
+          </Text>
+
+          <View style={styles.formularioOutro}>
+            <Text style={styles.label}>
+              Valor restante: {formatarMoeda(valorRestante)}
+            </Text>
+
+            <Text style={styles.label}>
+              Valor do pagamento
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Ex.: 50,00"
+              placeholderTextColor="#9CA3AF"
+              value={valorVendaParcial}
+              onChangeText={setValorVendaParcial}
+              keyboardType="decimal-pad"
+              editable={!vendendoParcial}
+            />
+
+            <Text style={styles.label}>
+              Forma de pagamento
+            </Text>
+
+            <View style={styles.opcoesPagamento}>
+              {[
+                { valor: "dinheiro", nome: "Dinheiro" },
+                { valor: "pix", nome: "Pix" },
+                { valor: "debito", nome: "Débito" },
+                { valor: "credito", nome: "Crédito" },
+              ].map((opcao) => {
+                const selecionada =
+                  formaPagamentoParcial === opcao.valor;
+
+                return (
+                  <TouchableOpacity
+                    key={opcao.valor}
+                    style={[
+                      styles.opcaoPagamento,
+                      selecionada &&
+                        styles.opcaoPagamentoSelecionada,
+                    ]}
+                    onPress={() =>
+                      setFormaPagamentoParcial(opcao.valor)
+                    }
+                    disabled={vendendoParcial}
+                  >
+                    <Text
+                      style={[
+                        styles.opcaoPagamentoTexto,
+                        selecionada &&
+                          styles.opcaoPagamentoTextoSelecionada,
+                      ]}
+                    >
+                      {opcao.nome}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.botaoPrimario,
+                vendendoParcial && styles.desativado,
+              ]}
+              onPress={confirmarVendaParcial}
+              disabled={vendendoParcial || valorRestante <= 0}
+            >
+              <Text style={styles.botaoPrimarioTexto}>
+                {vendendoParcial
+                  ? "Registrando pagamento..."
+                  : "Confirmar venda parcial"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.botaoCancelarOutro}
+              onPress={() => setMostrarVendaParcial(false)}
+              disabled={vendendoParcial}
+            >
+              <Text style={styles.botaoCancelarOutroTexto}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+
+    <View style={styles.pagamentoCard}>
               <Text style={styles.pagamentoTitulo}>
                 Forma de pagamento
               </Text>
@@ -882,7 +1144,23 @@ export default function DetalhesComanda() {
                 })}
               </View>
             </View>
-
+            <TouchableOpacity
+              style={[
+                styles.botaoVendaParcial,
+                (vendendoParcial || itens.length === 0 || valorRestante <= 0) &&
+                  styles.desativado,
+              ]}
+              onPress={() => setMostrarVendaParcial(true)}
+              disabled={
+                vendendoParcial ||
+                itens.length === 0 ||
+                valorRestante <= 0
+              }
+            >
+              <Text style={styles.botaoVendaParcialTexto}>
+                Vender parcialmente
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.botaoFechar,
@@ -917,6 +1195,33 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginTop: 22,
   },
+  totalSeparador: {
+  height: 1,
+  backgroundColor: "#93C5FD",
+  marginVertical: 12,
+},
+
+totalRestante: {
+  color: "#FFFFFF",
+  fontSize: 26,
+  fontWeight: "bold",
+  marginTop: 5,
+},
+
+botaoVendaParcial: {
+  height: 50,
+  backgroundColor: "#2563EB",
+  borderRadius: 11,
+  justifyContent: "center",
+  alignItems: "center",
+  marginTop: 24,
+},
+
+botaoVendaParcialTexto: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  fontSize: 16,
+},
   historicoTituloContainer: {
   flexDirection: "row",
   justifyContent: "space-between",

@@ -6,6 +6,7 @@ from app.models.item_comanda_model import ItemComanda
 from app.models.product_model import Produto
 from app.models.lote_model import Lote
 from app.models.historico_itens_model import HistoricoItemComanda
+from app.models.pagamento_comanda import PagamentoComanda
 
 
 def create(db: Session, comanda: Comanda) -> Comanda:
@@ -118,3 +119,13 @@ def pegar_historico(
     ).all()
 
     return historico
+
+def listar_pagamentos_comanda(
+    db: Session,
+    comanda_id: int
+):
+    return db.scalars(
+        select(PagamentoComanda)
+        .where(PagamentoComanda.comanda_id == comanda_id)
+        .order_by(PagamentoComanda.data_pagamento.desc())
+    ).all()
