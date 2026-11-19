@@ -31,11 +31,27 @@ type ItemVenda = {
   nome_usuario: string;
 };
 
+
+type PagamentoVenda = {
+  id: number;
+  valor: number | string;
+  forma_pagamento: string;
+  data_pagamento: string;
+  nome_usuario: string;
+};
+
+
 export default function Vendas() {
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [itensPorVenda, setItensPorVenda] = useState<
     Record<number, ItemVenda[]>
   >({});
+
+const [pagamentosPorVenda, setPagamentosPorVenda] = useState<
+  Record<number, PagamentoVenda[]>
+>({});
+const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
+
   const [vendaAberta, setVendaAberta] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -109,18 +125,59 @@ export default function Vendas() {
     }
   };
 
-  const abrirVenda = async (vendaId: number) => {
-    if (vendaAberta === vendaId) {
-      setVendaAberta(null);
+const carregarPagamentos = async (vendaId: number) => {
+  try {
+    setCarregandoPagamentos(true);
+
+    const token = await SecureStore.getItemAsync("token");
+
+    if (!token) {
+      setErro("Sessão não encontrada. Faça login novamente.");
       return;
     }
 
-    setVendaAberta(vendaId);
+    const response = await api.get<PagamentoVenda[]>(
+      `/vendas/${vendaId}/pagamentos`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-    if (itensPorVenda[vendaId] === undefined) {
-      await carregarItens(vendaId);
-    }
-  };
+    setPagamentosPorVenda((atual) => ({
+      ...atual,
+      [vendaId]: response.data,
+    }));
+  } catch (error) {
+    console.error("Erro ao carregar pagamentos da venda:", error);
+    setErro(`Não foi possível carregar os pagamentos da venda #${vendaId}.`);
+  } finally {
+    setCarregandoPagamentos(false);
+  }
+};
+
+  
+const abrirVenda = async (vendaId: number) => {
+  if (vendaAberta === vendaId) {
+    setVendaAberta(null);
+    return;
+  }
+
+  setVendaAberta(vendaId);
+
+  const tarefas: Promise<void>[] = [];
+
+  if (itensPorVenda[vendaId] === undefined) {
+    tarefas.push(carregarItens(vendaId));
+  }
+
+  if (pagamentosPorVenda[vendaId] === undefined) {
+    tarefas.push(carregarPagamentos(vendaId));
+  }
+
+  await Promise.all(tarefas);
+};
 
   useFocusEffect(
     useCallback(() => {
@@ -185,7 +242,7 @@ export default function Vendas() {
               {dinheiro(item.valor_total)}
             </Text>
             <Text style={styles.abrirTexto}>
-              {aberta ? "Fechar ▲" : "Ver itens ▼"}
+              {aberta ? "Fechar ▲" : "Ver informações ▼"}
             </Text>
           </View>
         </Pressable>
@@ -222,8 +279,45 @@ export default function Vendas() {
             ) : (
               <Text style={styles.semItens}>
                 Nenhum item encontrado para esta venda.
-              </Text>
+              </Text>  
             )}
+
+            <View style={styles.pagamentosVendaArea}>
+              <Text style={styles.pagamentosVendaTitulo}>
+                Pagamentos recebidos
+              </Text>
+
+              {carregandoPagamentos && pagamentosPorVenda[item.id] === undefined ? (
+                <ActivityIndicator color="#2563eb" />
+              ) : pagamentosPorVenda[item.id]?.length ? (
+                pagamentosPorVenda[item.id].map((pagamento) => (
+                  <View key={pagamento.id} style={styles.pagamentoVendaLinha}>
+                    <View style={styles.pagamentoVendaInfo}>
+                      <Text style={styles.pagamentoVendaValor}>
+                        {dinheiro(pagamento.valor)}
+                      </Text>
+
+                      <Text style={styles.pagamentoVendaForma}>
+                        {pagamentoFormatado(pagamento.forma_pagamento)}
+                      </Text>
+
+                      <Text style={styles.pagamentoVendaDetalhe}>
+                        Responsável: {pagamento.nome_usuario}
+                      </Text>
+
+                      <Text style={styles.pagamentoVendaData}>
+                        {dataFormatada(pagamento.data_pagamento)}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.semItens}>
+                  Nenhum pagamento registrado para esta venda.
+                </Text>
+              )}
+            </View>
+
           </View>
         )}
       </View>
@@ -299,6 +393,56 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6fa",
     paddingTop: 55,
   },
+
+pagamentosVendaArea: {
+  marginTop: 16,
+  paddingTop: 14,
+  borderTopWidth: 1,
+  borderTopColor: "#DCE3EB",
+},
+
+pagamentosVendaTitulo: {
+  fontSize: 15,
+  fontWeight: "bold",
+  color: "#172033",
+  marginBottom: 10,
+},
+
+pagamentoVendaLinha: {
+  paddingVertical: 12,
+  borderBottomWidth: 1,
+  borderBottomColor: "#EDF0F4",
+},
+
+pagamentoVendaInfo: {
+  flex: 1,
+},
+
+pagamentoVendaValor: {
+  color: "#15803D",
+  fontSize: 16,
+  fontWeight: "bold",
+},
+
+pagamentoVendaForma: {
+  color: "#2563EB",
+  fontSize: 12,
+  fontWeight: "bold",
+  marginTop: 5,
+},
+
+pagamentoVendaDetalhe: {
+  color: "#475467",
+  fontSize: 12,
+  marginTop: 5,
+},
+
+pagamentoVendaData: {
+  color: "#687386",
+  fontSize: 11,
+  marginTop: 5,
+},
+
   topo: {
     paddingHorizontal: 20,
     paddingBottom: 18,

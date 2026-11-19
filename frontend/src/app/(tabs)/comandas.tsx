@@ -92,6 +92,48 @@ export default function ComandasScreen() {
     }
   }
 
+
+async function excluirComanda(comanda: Comanda) {
+  Alert.alert(
+    "Excluir comanda",
+    `Tem certeza que deseja excluir a comanda "${comanda.nome}"?`,
+    [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await SecureStore.getItemAsync("token");
+
+            await api.delete(`/comandas/${comanda.id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            setComandas((listaAtual) =>
+              listaAtual.filter((item) => item.id !== comanda.id)
+            );
+
+            Alert.alert("Sucesso", "Comanda excluída.");
+          } catch (erro: any) {
+            Alert.alert(
+              "Erro",
+              erro?.response?.data?.detail ??
+                "Não foi possível excluir a comanda."
+            );
+          }
+        },
+      },
+    ]
+  );
+}
+
+
   const abertas = comandas.filter(
     (comanda) => comanda.status?.toLowerCase() === "aberta"
   );
@@ -131,6 +173,13 @@ export default function ComandasScreen() {
             <Text style={styles.nomeComanda}>{item.nome}</Text>
             <Text style={styles.idComanda}>Comanda #{item.id}</Text>
           </View>
+
+          <TouchableOpacity
+            style={styles.botaoExcluirComanda}
+            onPress={() => excluirComanda(item)}
+          >
+            <Text style={styles.botaoExcluirComandaTexto}>×</Text>
+          </TouchableOpacity>
 
           <View
             style={[
@@ -326,6 +375,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 20,
   },
+
+botaoExcluirComanda: {
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  backgroundColor: "#FEE2E2",
+  justifyContent: "center",
+  alignItems: "center",
+  marginLeft: 8,
+},
+
+botaoExcluirComandaTexto: {
+  color: "#DC2626",
+  fontSize: 23,
+  fontWeight: "bold",
+  lineHeight: 26,
+},
+
   busca: {
   backgroundColor: "#FFFFFF",
   borderWidth: 1,

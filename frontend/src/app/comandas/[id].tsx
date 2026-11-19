@@ -63,6 +63,7 @@ export default function DetalhesComanda() {
   const router = useRouter();
   const [pagamentos, setPagamentos] = useState<PagamentoComanda[]>([]);
 
+  const [pagamentosMinimizados, setPagamentosMinimizados] = useState(false);
   const [mostrarVendaParcial, setMostrarVendaParcial] = useState(false);
   const [valorVendaParcial, setValorVendaParcial] = useState("");
   const [formaPagamentoParcial, setFormaPagamentoParcial] = useState<string | null>(null);
@@ -988,6 +989,65 @@ async function realizarVendaParcial() {
             </>
           )}
         </View>
+        <View style={styles.tabelaCard}>
+  <View style={styles.historicoTituloContainer}>
+            <Text style={styles.tabelaTitulo}>
+              Pagamentos recebidos
+            </Text>
+
+            <TouchableOpacity
+              style={styles.botaoMinimizar}
+              onPress={() =>
+                setPagamentosMinimizados((anterior) => !anterior)
+              }
+            >
+              <Text style={styles.textoBotaoMinimizar}>
+                {pagamentosMinimizados ? "Expandir +" : "Minimizar −"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!pagamentosMinimizados && (
+            <>
+              {pagamentos.length === 0 ? (
+                <Text style={styles.tabelaVazia}>
+                  Nenhum pagamento registrado.
+                </Text>
+              ) : (
+                [...pagamentos]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.data_pagamento).getTime() -
+                      new Date(a.data_pagamento).getTime()
+                  )
+                  .map((pagamento) => (
+                    <View
+                      key={pagamento.id}
+                      style={styles.pagamentoHistoricoItem}
+                    >
+                      <View style={styles.pagamentoHistoricoTopo}>
+                        <Text style={styles.pagamentoHistoricoValor}>
+                          {formatarMoeda(Number(pagamento.valor))}
+                        </Text>
+
+                        <Text style={styles.pagamentoHistoricoForma}>
+                          {pagamento.forma_pagamento}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.pagamentoHistoricoDetalhe}>
+                        Responsável: {pagamento.nome_usuario}
+                      </Text>
+
+                      <Text style={styles.pagamentoHistoricoData}>
+                        {formatarData(pagamento.data_pagamento)}
+                      </Text>
+                    </View>
+                  ))
+              )}
+            </>
+          )}
+        </View>
         {aberta ? (
   <>
     <Modal
@@ -1199,6 +1259,44 @@ const styles = StyleSheet.create({
   height: 1,
   backgroundColor: "#93C5FD",
   marginVertical: 12,
+},
+pagamentoHistoricoItem: {
+  paddingVertical: 13,
+  borderBottomWidth: 1,
+  borderBottomColor: "#F1F5F9",
+},
+
+pagamentoHistoricoTopo: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 7,
+},
+
+pagamentoHistoricoValor: {
+  color: "#15803D",
+  fontSize: 16,
+  fontWeight: "bold",
+},
+
+pagamentoHistoricoForma: {
+  color: "#2563EB",
+  fontSize: 12,
+  fontWeight: "bold",
+  textTransform: "capitalize",
+  marginLeft: 8,
+},
+
+pagamentoHistoricoDetalhe: {
+  color: "#6B7280",
+  fontSize: 12,
+  marginTop: 4,
+},
+
+pagamentoHistoricoData: {
+  color: "#9CA3AF",
+  fontSize: 11,
+  marginTop: 7,
 },
 
 totalRestante: {
