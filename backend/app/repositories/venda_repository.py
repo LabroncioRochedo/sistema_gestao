@@ -247,6 +247,16 @@ def vender_produtos_direto(
 
         venda.valor_total = valor_total
 
+        pagamento_final = PagamentoComanda(
+                comanda_id=None,
+                venda_id=venda.id,
+                nome_usuario=usuario.nome,
+                valor=valor_total,
+                forma_pagamento=forma_pagamento
+            )
+
+        db.add(pagamento_final)
+
         db.commit()
         db.refresh(venda)
 

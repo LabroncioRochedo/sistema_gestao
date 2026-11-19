@@ -31,6 +31,7 @@ class VendaDiretaCreate(BaseModel):
 
 class VendaDiretaListaCreate(BaseModel):
     itens: list[VendaDiretaCreate] = Field(min_length=1)
+    forma_pagamento: str
 
 
 class VendaResponse_listar(BaseModel):
