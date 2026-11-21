@@ -16,7 +16,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import api from "@/services/api";
-import { verificarAdministrador } from "@/services/permissoes";
+import ContaFuncionario from "@/components/conta-funcionario";
 
 type Funcionario = {
   id: number;
@@ -27,6 +27,7 @@ type Funcionario = {
 export default function FuncionariosScreen() {
   const router = useRouter();
 
+  const [selecionado, setSelecionado] = useState<number | null>(null);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -66,29 +67,8 @@ export default function FuncionariosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      let ativo = true;
-
-      async function iniciar() {
-        setCarregando(true);
-
-        const administrador = await verificarAdministrador();
-
-        if (!ativo) return;
-
-        if (!administrador) {
-          router.replace("/(tabs)/produtos");
-          return;
-        }
-
-        await carregarFuncionarios();
-      }
-
-      iniciar();
-
-      return () => {
-        ativo = false;
-      };
-    }, [carregarFuncionarios, router])
+      void carregarFuncionarios();
+    }, [carregarFuncionarios])
   );
 
   async function excluirFuncionario(funcionario: Funcionario) {
@@ -248,13 +228,10 @@ export default function FuncionariosScreen() {
 
               <View style={styles.separador} />
 
-              <Text style={styles.label}>Pedidos anotados hoje</Text>
-
-              <View style={styles.pedidos}>
-                <Text style={styles.pedidosTexto}>
-                  Informações disponíveis em breve.
-                </Text>
-              </View>
+              <TouchableOpacity onPress={() => setSelecionado(selecionado === funcionario.id ? null : funcionario.id)}>
+                <Text style={styles.pedidosTexto}>{selecionado === funcionario.id ? "Ocultar comanda" : "Ver comanda"}</Text>
+              </TouchableOpacity>
+              {selecionado === funcionario.id && <ContaFuncionario funcionarioId={funcionario.id} administrador />}
             </View>
           ))
         )}

@@ -6,6 +6,7 @@ from app.models.comanda_model import Comanda
 from app.models.product_model import Produto
 from app.models.item_comanda_model import ItemComanda
 from app.models.user_model import Usuario
+from app.repositories.estoque import consumir_lotes
 from app.repositories.comanda_repository import registrar_saida
 from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.lote_model import Lote
@@ -107,46 +108,7 @@ def adicionar_itens(
                     f"Produto {dados_item.produto_id} não encontrado"
                 )
 
-            # Busca e bloqueia os lotes válidos com estoque
-            lotes = db.scalars(
-                select(Lote)
-                .where(
-                    Lote.produto_id == dados_item.produto_id,
-                    Lote.quantidade > 0
-                )
-                .order_by(
-                    Lote.data_de_validade.asc(),
-                    Lote.id.asc()
-                )
-                .with_for_update()
-            ).all()
-
-            estoque_disponivel = sum(
-                lote.quantidade for lote in lotes
-            )
-
-            if estoque_disponivel < dados_item.quantidade:
-                raise ValueError(
-                    f"Estoque insuficiente para o produto "
-                    f"{produto.nome}"
-                )
-
-            quantidade_restante = dados_item.quantidade
-
-            # Consome os lotes por ordem de vencimento
-            for lote in lotes:
-
-                if quantidade_restante == 0:
-                    break
-
-                quantidade_utilizada = min(
-                    lote.quantidade,
-                    quantidade_restante
-                )
-
-                lote.quantidade -= quantidade_utilizada
-                quantidade_restante -= quantidade_utilizada
-
+            for lote, quantidade_utilizada in consumir_lotes(db, produto, dados_item.quantidade):
                 item = ItemComanda(
                     comanda_id=comanda_id,
                     produto_id=produto.id,

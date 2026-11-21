@@ -1,27 +1,19 @@
+import { createContext } from "react";
 import * as SecureStore from "expo-secure-store";
 import api from "@/services/api";
 
-// SUBSTITUA pelo caminho da rota que você vai disponibilizar.
-// Exemplo: "/auth/verificar-admin"
-export const ROTA_VERIFICACAO_ADMIN =
-  "/usuarios/funcionarios";
+export type Perfil = { id: number; nome: string; cargo: string };
+export const PerfilContext = createContext<Perfil | null>(null);
 
-export async function verificarAdministrador(): Promise<boolean> {
+export async function cabecalhoSessao() {
   const token = await SecureStore.getItemAsync("token");
+  if (!token) throw new Error("Sessão não encontrada.");
+  return { Authorization: `Bearer ${token}` };
+}
 
-  if (!token) {
-    return false;
-  }
-
-  try {
-    const resposta = await api.get(ROTA_VERIFICACAO_ADMIN, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    return resposta.status === 200;
-  } catch {
-    return false;
-  }
+export async function carregarPerfil(): Promise<Perfil | null> {
+  const token = await SecureStore.getItemAsync("token");
+  if (!token) return null;
+  const { data } = await api.get<Perfil>("/usuarios/me", { headers: { Authorization: `Bearer ${token}` } });
+  return data;
 }

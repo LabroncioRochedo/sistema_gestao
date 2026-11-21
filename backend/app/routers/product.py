@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from fastapi import (
     APIRouter,
     Depends,
@@ -217,6 +218,11 @@ def excluir_produto(
             "message": "Produto excluído com sucesso"
         }
 
+    except IntegrityError as erro:
+        db.rollback()
+        if getattr(getattr(erro.orig, "diag", None), "constraint_name", None) == "fk_item_conta_lote":
+            raise HTTPException(409, "O produto possui itens anotados em comandas de funcionários.") from erro
+        raise
     except ValueError as error:
         raise HTTPException(
             status_code=404,

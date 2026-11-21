@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.comanda_funcionario import ComandaFuncionario
 from app.models.user_model import Usuario
 
 
@@ -33,6 +34,9 @@ def create(
 ) -> Usuario:
 
     db.add(usuario)
+    if usuario.cargo == "funcionario":
+        db.flush()
+        db.add(ComandaFuncionario(funcionario_id=usuario.id))
     db.commit()
     db.refresh(usuario)
 

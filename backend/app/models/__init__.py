@@ -8,3 +8,4 @@ from app.models.lote_model import Lote
 from app.models.historico_comanda_model import HistoricoComanda
 from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.pagamento_comanda import PagamentoComanda
+from app.models.comanda_funcionario import ComandaFuncionario, ItemComandaFuncionario

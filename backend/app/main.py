@@ -9,6 +9,8 @@ from app.routers.item_comanda import router as item_comanda_router
 from app.routers.venda import router as venda_router
 
 
+from app.routers.comanda_funcionario import router as comanda_funcionario_router
+
 app = FastAPI(
     title="Sistema de Gestão API",
     version="1.0.0"
@@ -25,3 +27,4 @@ app.include_router(product_router)
 app.include_router(comanda_router)
 app.include_router(item_comanda_router)
 app.include_router(venda_router)
+app.include_router(comanda_funcionario_router)
