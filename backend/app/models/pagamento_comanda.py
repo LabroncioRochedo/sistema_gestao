@@ -43,7 +43,7 @@ class PagamentoComanda(Base):
     )
 
     forma_pagamento: Mapped[str] = mapped_column(
-        String(20),
+        String(30),
         nullable=False
     )
 

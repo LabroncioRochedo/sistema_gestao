@@ -8,7 +8,7 @@ from sqlalchemy import (
     DateTime,
     Numeric,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
 
@@ -22,18 +22,19 @@ class HistoricoItemComanda(Base):
     )
 
     comanda_id: Mapped[int] = mapped_column(
-    ForeignKey("comandas.id", ondelete="CASCADE"),
-    nullable=False
+        ForeignKey("historico_comandas.comanda_id"),
+        index=True,
+        nullable=False
     )
 
     nome_produto: Mapped[str] = mapped_column(
-        String(20),
+        String(250),
         nullable=False
     )
 
-    usuario_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.id"),
-        nullable=False
+    usuario_id: Mapped[int | None] = mapped_column(
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True
     )
 
     quantidade: Mapped[int] = mapped_column(
@@ -61,7 +62,4 @@ class HistoricoItemComanda(Base):
         nullable=False
     )
 
-    comanda: Mapped["Comanda"] = relationship(
-    passive_deletes=True
-    )
-    usuario: Mapped["Usuario"] = relationship()
+    nome_usuario: Mapped[str] = mapped_column(String(100))

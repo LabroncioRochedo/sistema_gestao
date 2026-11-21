@@ -69,3 +69,32 @@ example
 # generated native folders
 /ios
 /android
+
+# Credenciais locais e arquivos de assinatura
+.aws/
+.ssh/
+.codex/auth.json
+.netrc
+.pgpass
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Backups e bancos locais
+backups/
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+
+# Pacotes gerados para distribuição
+*.apk
+*.aab
+*.ipa

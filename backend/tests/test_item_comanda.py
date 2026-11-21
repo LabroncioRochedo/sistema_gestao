@@ -19,7 +19,7 @@ def test_adicionar_item_a_comanda(client, auth_headers):
     response = client.post(
         "/comandas",
         json={
-            "nome": "jose_12"
+            "nome": "jose_12", "numero": 32
         },
         headers=auth_headers
     )

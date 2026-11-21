@@ -19,7 +19,7 @@ def test_vender_comanda_registra_itens_e_exclui_comanda(
     # Abrir comanda
     response = client.post(
         "/comandas",
-        json={"nome": "Comanda venda"},
+        json={"nome": "Comanda venda", "numero": 45},
         headers=auth_headers
     )
     assert response.status_code == 201

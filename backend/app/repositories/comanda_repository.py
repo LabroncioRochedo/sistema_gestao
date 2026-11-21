@@ -1,17 +1,35 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session,selectinload
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
-from app.models.product_model import Produto
+from app.models.historico_comanda_model import HistoricoComanda
+from app.models.user_model import Usuario
 from app.models.lote_model import Lote
 from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.pagamento_comanda import PagamentoComanda
 
 
+class NumeroComandaEmUso(ValueError):
+    pass
+
+
 def create(db: Session, comanda: Comanda) -> Comanda:
     db.add(comanda)
-    db.commit()
+    try:
+        db.flush()
+        db.add(HistoricoComanda(comanda_id=comanda.id, nome=comanda.nome,
+                                numero=comanda.numero, status=comanda.status))
+        db.commit()
+    except IntegrityError as erro:
+        db.rollback()
+        diagnostico = getattr(erro.orig, "diag", None)
+        if getattr(diagnostico, "constraint_name", None) == "uq_comandas_numero":
+            raise NumeroComandaEmUso("Este número de comanda já está em uso.") from erro
+        raise
     db.refresh(comanda)
 
     return comanda
@@ -38,7 +56,31 @@ def get_comanda(
         .first()
     )
 
-def deletar_comanda(db, comanda_id: int):
+def encerrar_historico(db: Session, comanda_id: int, status: str):
+    historico = db.get_one(HistoricoComanda, comanda_id)
+    historico.status = status
+    historico.data_encerramento = datetime.now(timezone.utc)
+
+
+def listar_encerradas(db: Session, inicio: int, limite: int):
+    return db.scalars(
+        select(HistoricoComanda)
+        .where(HistoricoComanda.data_encerramento.is_not(None))
+        .options(selectinload(HistoricoComanda.anotacoes))
+        .order_by(HistoricoComanda.data_encerramento.desc(), HistoricoComanda.comanda_id.desc())
+        .offset(inicio).limit(limite)
+    ).all()
+
+
+def registrar_saida(db: Session, item: ItemComanda, usuario: Usuario):
+    db.add(HistoricoItemComanda(
+        comanda_id=item.comanda_id, nome_produto=item.nome_produto,
+        usuario_id=usuario.id, nome_usuario=usuario.nome, quantidade=item.quantidade,
+        preco_unitario=item.preco_unitario, comentario=item.comentario, operacao="saida",
+    ))
+
+
+def deletar_comanda(db, comanda_id: int, usuario: Usuario):
     try:
         # Bloqueia a comanda durante a operação
         comanda = db.execute(
@@ -67,10 +109,9 @@ def deletar_comanda(db, comanda_id: int):
         quantidades = {}
 
         for item in itens:
-            quantidades[item.lote_id] = (
-                quantidades.get(item.lote_id, 0)
-                + item.quantidade
-            )
+            registrar_saida(db, item, usuario)
+            if item.lote_id is not None:
+                quantidades[item.lote_id] = quantidades.get(item.lote_id, 0) + item.quantidade
 
         # Bloqueia os produtos em ordem consistente
         produtos = {}
@@ -84,7 +125,7 @@ def deletar_comanda(db, comanda_id: int):
 
             if produto is None:
                 raise ValueError(
-                    f"Produto {produto_id} não encontrado"
+                    f"Lote {lote_id} não encontrado"
                 )
 
             produtos[lote_id] = produto
@@ -97,6 +138,7 @@ def deletar_comanda(db, comanda_id: int):
         for item in itens:
             db.delete(item)
 
+        encerrar_historico(db, comanda_id, "excluida")
         db.delete(comanda)
 
         db.commit()
@@ -114,8 +156,7 @@ def pegar_historico(
     historico = db.scalars(
         select(HistoricoItemComanda)
         .where(HistoricoItemComanda.comanda_id == comanda_id)
-        .order_by(HistoricoItemComanda.data_movimentacao.desc())
-        .options(selectinload(HistoricoItemComanda.usuario))
+        .order_by(HistoricoItemComanda.data_movimentacao.desc(), HistoricoItemComanda.id.desc())
     ).all()
 
     return historico

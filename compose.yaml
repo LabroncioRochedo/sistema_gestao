@@ -10,6 +10,8 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - api_storage:/app/storage
     expose:
       - "8000"
     depends_on:
@@ -52,6 +54,7 @@ services:
       - sistema_gestao_network
 
 volumes:
+  api_storage:
   postgres_data:
 
 networks:

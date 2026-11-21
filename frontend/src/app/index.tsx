@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { Redirect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 
 export default function Index() {
   const [destino, setDestino] = useState<
@@ -39,7 +39,7 @@ export default function Index() {
         setDestino("/(tabs)");
       } catch (error) {
         if (
-          axios.isAxiosError(error) &&
+          isAxiosError(error) &&
           error.response?.status === 401
         ) {
           await SecureStore.deleteItemAsync("token");

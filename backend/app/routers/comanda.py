@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.dependencies.database import get_db
@@ -6,11 +6,14 @@ from app.dependencies.auth import get_current_user
 from app.models.user_model import Usuario
 from app.schemas.comanda_schema import (
     ComandaCreate,
+    ComandaEncerrada,
     ComandaResponse_criar,
     ComandaResponse_listar,
     ComandaResponse_historico,
     ComandaPagamentosResponse_listar
 )
+from app.repositories.comanda_repository import NumeroComandaEmUso
+from app.repositories import comanda_repository
 from app.services import comanda_service
 
 
@@ -30,11 +33,10 @@ def abrir_comanda(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_current_user)
 ):
-    return comanda_service.create_comanda(
-        db=db,
-        data=data,
-        usuario_id=usuario_atual.id
-    )
+    try:
+        return comanda_service.create_comanda(db=db, data=data, usuario_id=usuario_atual.id)
+    except NumeroComandaEmUso as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(erro)) from erro
 
 @router.get(
     "",
@@ -45,6 +47,14 @@ def listar_comandas(
     usuario: Usuario = Depends(get_current_user)
 ):
     return comanda_service.get_all_comandas(db)
+
+@router.get("/historico", response_model=list[ComandaEncerrada])
+def listar_historico(
+    inicio: int = Query(0, ge=0), limite: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user),
+):
+    return comanda_repository.listar_encerradas(db, inicio, limite)
+
 
 @router.get(
     "/{comanda_id}"
@@ -64,6 +74,7 @@ def deletar_comanda(
 ):
     try:
         comanda_service.deletar_comanda(
+            usuario=usuario_atual,
             db=db,
             comanda_id=comanda_id
         )

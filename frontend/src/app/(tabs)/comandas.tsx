@@ -18,11 +18,20 @@ import api from "@/services/api";
 
 type Comanda = {
   id: number;
+  numero: number;
   nome: string;
   status: string;
   usuario_nome?: string;
   data_abertura?: string;
 };
+
+async function buscarComandas() {
+  const token = await SecureStore.getItemAsync("token");
+  const resposta = await api.get<Comanda[]>("/comandas", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return resposta.data;
+}
 
 export default function ComandasScreen() {
   const router = useRouter();
@@ -33,39 +42,37 @@ export default function ComandasScreen() {
   const [atualizando, setAtualizando] = useState(false);
   const [criando, setCriando] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [numero, setNumero] = useState("");
+  const [erroCriacao, setErroCriacao] = useState("");
   const [nome, setNome] = useState("");
 
-  const carregarComandas = useCallback(async () => {
-    try {
-      const token = await SecureStore.getItemAsync("token");
-      const resposta = await api.get<Comanda[]>("/comandas", { headers: { Authorization: `Bearer ${token}`, }, });
-      setComandas(resposta.data);
-    } catch (erro: any) {
-      Alert.alert(
-        "Erro",
-        erro?.response?.data?.detail ??
-          "Não foi possível carregar as comandas."
-      );
-    } finally {
-      setCarregando(false);
-      setAtualizando(false);
-    }
+  const carregarComandas = useCallback(() => {
+    return buscarComandas().then(setComandas).catch((erro) => {
+      Alert.alert("Erro", erro?.response?.data?.detail ?? "Não foi possível carregar as comandas.");
+    });
   }, []);
 
   useEffect(() => {
-    carregarComandas();
+    void carregarComandas().finally(() => setCarregando(false));
   }, [carregarComandas]);
 
   function atualizarLista() {
     setAtualizando(true);
-    carregarComandas();
+    void carregarComandas().finally(() => setAtualizando(false));
   }
 
   async function criarComanda() {
+    if (criando) return;
     const nomeLimpo = nome.trim();
+    setErroCriacao("");
 
     if (!nomeLimpo) {
-      Alert.alert("Campo obrigatório", "Informe o nome da comanda.");
+      setErroCriacao("Informe o nome da comanda.");
+      return;
+    }
+
+    if (!/^\d{1,3}$/.test(numero) || Number(numero) < 1) {
+      setErroCriacao("Informe um número inteiro de 1 a 999.");
       return;
     }
 
@@ -75,18 +82,17 @@ export default function ComandasScreen() {
       const token = await SecureStore.getItemAsync("token");
       await api.post("/comandas", {
         nome: nomeLimpo,
+        numero: Number(numero),
       }, { headers: { Authorization: `Bearer ${token}`, }, });
 
       setNome("");
+      setNumero("");
       setMostrarFormulario(false);
       await carregarComandas();
       Alert.alert("Sucesso", "Comanda criada!");
     } catch (erro: any) {
-      Alert.alert(
-        "Erro",
-        erro?.response?.data?.detail ??
-          "Não foi possível criar a comanda."
-      );
+      const detalhe = erro?.response?.data?.detail;
+      setErroCriacao(typeof detalhe === "string" ? detalhe : "Não foi possível criar a comanda.");
     } finally {
       setCriando(false);
     }
@@ -141,13 +147,10 @@ async function excluirComanda(comanda: Comanda) {
   const encerradas = comandas.filter(
     (comanda) => comanda.status?.toLowerCase() !== "aberta"
   );
-  const comandasFiltradas = comandas.filter((comanda) => {
   const termo = busca.trim().toLowerCase();
-
-  return (
-    comanda.nome.toLowerCase().includes(termo)
+  const comandasFiltradas = comandas.filter((comanda) =>
+    comanda.nome.toLowerCase().includes(termo) || String(comanda.numero).includes(termo)
   );
-  });
   function abrirComanda(comanda: Comanda) {
     router.push({
       pathname: "/comandas/[id]",
@@ -171,7 +174,7 @@ async function excluirComanda(comanda: Comanda) {
 
           <View style={styles.cardInfo}>
             <Text style={styles.nomeComanda}>{item.nome}</Text>
-            <Text style={styles.idComanda}>Comanda #{item.id}</Text>
+            <Text style={styles.idComanda}>Comanda #{item.numero}</Text>
           </View>
 
           <TouchableOpacity
@@ -228,7 +231,10 @@ async function excluirComanda(comanda: Comanda) {
 
           <TouchableOpacity
             style={styles.botaoAdicionar}
-            onPress={() => setMostrarFormulario((atual) => !atual)}
+            onPress={() => {
+              setErroCriacao("");
+              setMostrarFormulario((atual) => !atual);
+            }}
           >
             <Text style={styles.botaoAdicionarTexto}>
               {mostrarFormulario ? "Cancelar" : "+ Nova"}
@@ -247,10 +253,22 @@ async function excluirComanda(comanda: Comanda) {
               value={nome}
               onChangeText={setNome}
               autoCapitalize="words"
+              maxLength={90}
+            />
+            <Text style={[styles.label, styles.labelNumero]}>Número da comanda (1 a 999)</Text>
+            <TextInput
+              style={styles.input}
+              accessibilityLabel="Número da comanda"
+              placeholder="Ex.: 42"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="number-pad"
+              value={numero}
+              onChangeText={setNumero}
               returnKeyType="done"
               onSubmitEditing={criarComanda}
             />
 
+            {erroCriacao ? <Text accessibilityRole="alert" style={styles.erroCriacao}>{erroCriacao}</Text> : null}
             <TouchableOpacity
               style={[
                 styles.botaoCriar,
@@ -451,6 +469,8 @@ botaoExcluirComandaTexto: {
     fontWeight: "600",
     marginBottom: 7,
   },
+  labelNumero: { marginTop: 12 },
+  erroCriacao: { color: "#B91C1C", marginTop: 8 },
   input: {
     height: 48,
     borderWidth: 1,

@@ -54,30 +54,30 @@ export default function VendaDiretaScreen() {
   const [busca, setBusca] = useState("");
 
   useEffect(() => {
-    carregarProdutos();
-  }, []);
+    async function carregarProdutos() {
+      try {
+        const token = await SecureStore.getItemAsync("token");
 
-  async function carregarProdutos() {
-    try {
-      const token = await SecureStore.getItemAsync("token");
+        const resposta = await api.get<Produto[]>("/produtos", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const resposta = await api.get<Produto[]>("/produtos", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setProdutos(resposta.data);
-    } catch (erro: any) {
-      Alert.alert(
-        "Erro",
-        erro?.response?.data?.detail ??
-          "Não foi possível carregar os produtos."
-      );
-    } finally {
-      setCarregando(false);
+        setProdutos(resposta.data);
+      } catch (erro: any) {
+        Alert.alert(
+          "Erro",
+          erro?.response?.data?.detail ??
+            "Não foi possível carregar os produtos."
+        );
+      } finally {
+        setCarregando(false);
+      }
     }
-  }
+
+    void carregarProdutos();
+  }, []);
 
   function alterarQuantidade(produto: Produto, incremento: number) {
     setQuantidades((anteriores) => {

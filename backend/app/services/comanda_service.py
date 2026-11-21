@@ -9,6 +9,7 @@ def create_comanda(db: Session,data: ComandaCreate, usuario_id: int) -> Comanda:
     comanda = Comanda(
         usuario_id=usuario_id,
         nome=data.nome,
+        numero=data.numero,
         status="aberta"
     )
 
@@ -23,8 +24,9 @@ def get_comanda(db, comanda_id: int):
         comanda_id=comanda_id
     )
 
-def deletar_comanda(db, comanda_id: int):
+def deletar_comanda(db, comanda_id: int, usuario):
     return comanda_repository.deletar_comanda(
+        usuario=usuario,
         db=db,
         comanda_id=comanda_id
     )

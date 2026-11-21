@@ -113,6 +113,7 @@ def deletar_item(
 ):
     try:
         item_comanda_service.deletar_item(
+            usuario=usuario,
             db=db,
             comanda_id=comanda_id,
             item_id=item_id

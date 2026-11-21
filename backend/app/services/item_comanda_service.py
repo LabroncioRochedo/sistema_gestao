@@ -54,11 +54,13 @@ def listar_itens(
 def deletar_item(
     db: Session,
     comanda_id: int,
-    item_id: int
+    item_id: int,
+    usuario,
 ) -> None:
 
     item_comanda_repository.deletar_item(
         db=db,
         comanda_id=comanda_id,
+        usuario=usuario,
         item_id=item_id
     )

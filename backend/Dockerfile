@@ -19,5 +19,5 @@ COPY . .
 # Documenta a porta utilizada pela API
 EXPOSE 8000
 
-# Inicia o FastAPI usando Uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Só inicia a API após aplicar as migrações pendentes.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

@@ -5,6 +5,8 @@ from datetime import date
 from app.models.comanda_model import Comanda
 from app.models.product_model import Produto
 from app.models.item_comanda_model import ItemComanda
+from app.models.user_model import Usuario
+from app.repositories.comanda_repository import registrar_saida
 from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.lote_model import Lote
 
@@ -45,6 +47,7 @@ def adicionar_item_outro(
                     preco_unitario=dados.preco_unitario,
                 )
         historico = HistoricoItemComanda(
+            nome_usuario=db.get_one(Usuario, usuario_id).nome,
             comanda_id=comanda_id,
             nome_produto=dados.nome_produto,
             usuario_id=usuario_id,
@@ -88,6 +91,7 @@ def adicionar_itens(
             )
 
         itens_criados = []
+        nome_usuario = db.get_one(Usuario, usuario_id).nome
 
         # Percorre todos os itens recebidos
         for dados_item in itens:
@@ -155,6 +159,8 @@ def adicionar_itens(
                 )
 
                 historico = HistoricoItemComanda(
+                    nome_usuario=nome_usuario,
+                    comentario=dados_item.comentario,
                     comanda_id=comanda_id,
                     nome_produto=produto.nome,
                     usuario_id=usuario_id,
@@ -199,7 +205,8 @@ def listar_itens(
 def deletar_item(
     db: Session,
     comanda_id: int,
-    item_id: int
+    item_id: int,
+    usuario: Usuario,
 ) -> None:
 
     try:
@@ -232,14 +239,7 @@ def deletar_item(
             raise ValueError("Item não encontrado nesta comanda")
 
         # Registra o histórico antes de excluir o item
-        historico = HistoricoItemComanda(
-            comanda_id=item.comanda_id,
-            nome_produto=item.nome_produto,
-            usuario_id=item.usuario_id,
-            quantidade=item.quantidade,
-            preco_unitario=item.preco_unitario,
-            operacao="saida"
-        )
+        registrar_saida(db, item, usuario)
 
         # Se o item estiver associado a um lote, devolve o estoque
         if item.lote_id is not None:
@@ -257,7 +257,6 @@ def deletar_item(
             lote.quantidade += item.quantidade
 
         # Registra o histórico e remove o item
-        db.add(historico)
         db.delete(item)
 
         db.commit()

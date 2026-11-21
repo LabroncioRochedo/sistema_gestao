@@ -5,5 +5,6 @@ from app.models.item_comanda_model import ItemComanda
 from app.models.venda_model import Venda
 from app.models.item_venda_model import ItemVenda
 from app.models.lote_model import Lote
+from app.models.historico_comanda_model import HistoricoComanda
 from app.models.historico_itens_model import HistoricoItemComanda
 from app.models.pagamento_comanda import PagamentoComanda

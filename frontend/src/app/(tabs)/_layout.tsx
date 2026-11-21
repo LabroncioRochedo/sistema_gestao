@@ -37,6 +37,8 @@ export default function TabsLayout() {
         }}
       />
 
+      <Tabs.Screen name="historico" options={{ title: "Histórico" }} />
+
       <Tabs.Screen
         name="funcionarios"
         options={{

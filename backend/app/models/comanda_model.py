@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -13,6 +13,13 @@ if TYPE_CHECKING:
 
 class Comanda(Base):
     __tablename__ = "comandas"
+
+    __table_args__ = (
+        UniqueConstraint("numero", name="uq_comandas_numero"),
+        CheckConstraint("numero BETWEEN 1 AND 999", name="ck_comandas_numero"),
+    )
+
+    numero: Mapped[int] = mapped_column(nullable=False)
 
     id: Mapped[int] = mapped_column(
         primary_key=True,

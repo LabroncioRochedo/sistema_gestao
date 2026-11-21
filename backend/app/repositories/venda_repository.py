@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, selectinload
 
+from app.repositories.comanda_repository import encerrar_historico
 from app.models.user_model import Usuario
 from app.models.comanda_model import Comanda
 from app.models.item_comanda_model import ItemComanda
@@ -136,6 +137,7 @@ def vender_comanda(
             db.delete(item)
 
         # Exclui a comanda
+        encerrar_historico(db, comanda_id, "paga")
         db.delete(comanda)
 
         db.commit()

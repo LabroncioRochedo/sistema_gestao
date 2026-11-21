@@ -40,33 +40,27 @@ export default function LotesScreen() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
-  const carregarLotes = useCallback(async () => {
-    try {
-      setErro("");
-
+  const carregarLotes = useCallback(() => {
+    async function buscarLotes() {
       const token = await SecureStore.getItemAsync("token");
+      if (!token) return null;
+      const resposta = await api.get<Lote[]>(`/produtos/${produto_id}/lote`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return resposta.data;
+    }
 
-      if (!token) {
+    return buscarLotes().then((dados) => {
+      if (dados === null) {
         setErro("Sessão não encontrada. Faça login novamente.");
         return;
       }
-
-      const resposta = await api.get<Lote[]>(
-        `/produtos/${produto_id}/lote`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setLotes(resposta.data);
-    } catch (error) {
+      setLotes(dados);
+      setErro("");
+    }).catch((error) => {
       console.error("Erro ao carregar lotes:", error);
       setErro("Não foi possível carregar os lotes.");
-    } finally {
-      setCarregando(false);
-    }
+    }).finally(() => setCarregando(false));
   }, [produto_id]);
 
   useEffect(() => {

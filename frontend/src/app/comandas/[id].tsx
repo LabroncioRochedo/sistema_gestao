@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -45,6 +44,7 @@ type ItemComanda = {
 };
 
 type Comanda = {
+  numero: number;
   id: number;
   nome: string;
   status: string;
@@ -79,7 +79,6 @@ export default function DetalhesComanda() {
   const [itens, setItens] = useState<ItemComanda[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [atualizando, setAtualizando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
   const [removendoId, setRemovendoId] = useState<number | null>(null);
   const [fechando, setFechando] = useState(false);
@@ -89,73 +88,41 @@ export default function DetalhesComanda() {
   const [busca, setBusca] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
 
-  const carregarDados = useCallback(async () => {
-    if (!id) return;
+  const carregarDados = useCallback(() => {
+    if (!id) return Promise.resolve();
 
-    try {
+    async function buscarComanda() {
       const token = await SecureStore.getItemAsync("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       const [resComanda, resItens, resProdutos] = await Promise.all([
-        api.get<Comanda>(`/comandas/${id}`, { headers: { Authorization: `Bearer ${token}`, }, }),
-        api.get<ItemComanda[]>(`/comandas/${id}/itens`, { headers: { Authorization: `Bearer ${token}`, }, }),
-        api.get<Produto[]>("/produtos", { headers: { Authorization: `Bearer ${token}`, }, }),
+        api.get<Comanda>(`/comandas/${id}`, config),
+        api.get<ItemComanda[]>(`/comandas/${id}/itens`, config),
+        api.get<Produto[]>("/produtos", config),
       ]);
+      return { config, resComanda, resItens, resProdutos };
+    }
 
+    return buscarComanda().then(async ({ config, resComanda, resItens, resProdutos }) => {
       setComanda(resComanda.data);
       setItens(resItens.data);
       setProdutos(resProdutos.data);
-      try {
-        const resHistorico = await api.get<HistoricoComanda[]>(
-          `/comandas/${id}/historico`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
 
-        setHistorico(resHistorico.data);
-      } catch (erro: any) {
-        console.log(
-          "Erro ao carregar histórico:",
-          erro?.response?.data ?? erro
-        );
-
-        setHistorico([]);
-      }
-          try {
-      const resPagamentos = await api.get<PagamentoComanda[]>(
-        `/comandas/${id}/pagamentos`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setPagamentos(resPagamentos.data);
-    } catch (erro: any) {
-      console.log(
-        "Erro ao carregar pagamentos:",
-        erro?.response?.data ?? erro
-      );
-
-      setPagamentos([]);
-    }
-    } catch (erro: any) {
-      Alert.alert(
-        "Erro",
-        erro?.response?.data?.detail ??
-          "Não foi possível carregar os dados da comanda."
-      );
-    } finally {
-      setCarregando(false);
-      setAtualizando(false);
-    }
+      const [historico, pagamentos] = await Promise.allSettled([
+        api.get<HistoricoComanda[]>(`/comandas/${id}/historico`, config),
+        api.get<PagamentoComanda[]>(`/comandas/${id}/pagamentos`, config),
+      ]);
+      if (historico.status === "rejected") console.error("Erro ao carregar histórico:", historico.reason);
+      if (pagamentos.status === "rejected") console.error("Erro ao carregar pagamentos:", pagamentos.reason);
+      setHistorico(historico.status === "fulfilled" ? historico.value.data : []);
+      setPagamentos(pagamentos.status === "fulfilled" ? pagamentos.value.data : []);
+    }).catch((erro) => {
+      Alert.alert("Erro", erro?.response?.data?.detail ?? "Não foi possível carregar os dados da comanda.");
+    });
   }, [id]);
 
   useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+    if (id) void carregarDados().finally(() => setCarregando(false));
+  }, [carregarDados, id]);
 
   const total = useMemo(() => {
     return itens.reduce((soma, item) => {
@@ -590,7 +557,7 @@ async function realizarVendaParcial() {
         <View style={styles.cabecalho}>
           <View style={styles.cabecalhoTexto}>
             <Text style={styles.titulo}>{comanda.nome}</Text>
-            <Text style={styles.subtitulo}>Comanda #{comanda.id}</Text>
+            <Text style={styles.subtitulo}>Comanda #{comanda.numero}</Text>
           </View>
           <View style={[styles.status, aberta ? styles.aberta : styles.fechada]}>
             <Text style={[styles.statusTexto, aberta ? styles.abertaTexto : styles.fechadaTexto]}>

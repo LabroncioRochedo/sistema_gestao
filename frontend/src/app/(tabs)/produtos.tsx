@@ -34,16 +34,6 @@ function formatarPreco(valor: number) {
   });
 }
 
-function formatarData(data: string) {
-  if (!data) return "Não informada";
-
-  const partes = data.slice(0, 10).split("-");
-
-  if (partes.length !== 3) return data;
-
-  return `${partes[2]}/${partes[1]}/${partes[0]}`;
-}
-
 function obterStatus(quantidade: number) {
   if (quantidade <= 0) {
     return {
@@ -68,6 +58,14 @@ function obterStatus(quantidade: number) {
   };
 }
 
+async function buscarProdutos() {
+  const token = await SecureStore.getItemAsync("token");
+  const resposta = await api.get<Produto[]>("/produtos", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return resposta.data;
+}
+
 export default function ProdutosScreen() {
   const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -80,22 +78,17 @@ export default function ProdutosScreen() {
   const [precoEditado, setPrecoEditado] = useState("");
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
-  const carregarProdutos = useCallback(async () => {
-    try {
+  const carregarProdutos = useCallback(() => {
+    return buscarProdutos().then((dados) => {
+      setProdutos(dados);
       setErro("");
-
-      const token = await SecureStore.getItemAsync("token");
-
-      const resposta = await api.get<Produto[]>("/produtos", { headers: { Authorization: `Bearer ${token}`, }, });
-
-      setProdutos(resposta.data);
-    } catch (error) {
+    }).catch((error) => {
       console.error("Erro ao carregar produtos:", error);
       setErro("Não foi possível carregar os produtos.");
-    } finally {
+    }).finally(() => {
       setCarregando(false);
       setAtualizando(false);
-    }
+    });
   }, []);
 
   useEffect(() => {

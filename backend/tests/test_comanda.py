@@ -2,7 +2,7 @@ def test_abrir_comanda(client, auth_headers):
     response = client.post(
         "/comandas",
         json={
-            "nome":"jose_12"
+            "nome": "jose_12", "numero": 12
         },
         headers=auth_headers
     )
@@ -12,6 +12,7 @@ def test_abrir_comanda(client, auth_headers):
     data = response.json()
 
     assert data["id"] is not None
+    assert data["numero"] == 12
     assert data["status"] == "aberta"
     assert data["usuario_id"] is not None
 
@@ -19,13 +20,13 @@ def test_abrir_comanda_sem_token(client):
     response = client.post(
         "/comandas",
         json={
-            "nome":"jose_11"
+            "nome": "jose_11", "numero": 11
         }
     )
 
     assert response.status_code == 401
 
-def test_listar_comandas(client,auth_headers):
+def test_listar_comandas(client, auth_headers, credenciais_teste):
     response = client.get(
         "/comandas",
         headers=auth_headers
@@ -35,7 +36,7 @@ def test_listar_comandas(client,auth_headers):
 
     data = response.json()
 
-    assert data[0]["usuario_nome"] == "Marcus"
+    assert any(comanda["usuario_nome"] == credenciais_teste["nome"] for comanda in data)
 
 def test_deletar_comanda_retorna_estoque(
     client,
@@ -58,7 +59,7 @@ def test_deletar_comanda_retorna_estoque(
     # Cria comanda
     response = client.post(
         "/comandas",
-        json={"nome": "Comanda teste"},
+        json={"nome": "Comanda teste", "numero": 21},
         headers=auth_headers
     )
     assert response.status_code == 201
